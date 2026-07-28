@@ -4,7 +4,9 @@ import App from '@/App'
 import { loadTheme, saveTheme } from '@/utils/theme'
 
 // Apply saved theme before first render
-saveTheme(loadTheme())
+void loadTheme().then((theme) => {
+  void saveTheme(theme)
+})
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

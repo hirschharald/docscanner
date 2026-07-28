@@ -1,9 +1,23 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { Document } from '@/types'
 import { loadDocuments, saveDocuments, generateId } from '@/utils/storage'
 
 export function useDocuments() {
-  const [documents, setDocuments] = useState<Document[]>(loadDocuments)
+  const [documents, setDocuments] = useState<Document[]>([])
+
+  useEffect(() => {
+    let active = true
+
+    void loadDocuments().then((loaded) => {
+      if (active) {
+        setDocuments(loaded)
+      }
+    })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const addDocument = useCallback((
     name: string,
@@ -19,18 +33,20 @@ export function useDocuments() {
       createdAt: Date.now(),
       tags,
     }
+
     setDocuments((prev) => {
       const updated = [doc, ...prev]
-      saveDocuments(updated)
+      void saveDocuments(updated)
       return updated
     })
+
     return doc
   }, [])
 
   const removeDocument = useCallback((id: string) => {
     setDocuments((prev) => {
       const updated = prev.filter((d) => d.id !== id)
-      saveDocuments(updated)
+      void saveDocuments(updated)
       return updated
     })
   }, [])
@@ -38,7 +54,7 @@ export function useDocuments() {
   const updateDocument = useCallback((id: string, patch: Partial<Pick<Document, 'name' | 'tags'>>) => {
     setDocuments((prev) => {
       const updated = prev.map((d) => (d.id === id ? { ...d, ...patch } : d))
-      saveDocuments(updated)
+      void saveDocuments(updated)
       return updated
     })
   }, [])
@@ -46,7 +62,7 @@ export function useDocuments() {
   const cropDocument = useCallback((id: string, dataUrl: string) => {
     setDocuments((prev) => {
       const updated = prev.map((d) => (d.id === id ? { ...d, dataUrl } : d))
-      saveDocuments(updated)
+      void saveDocuments(updated)
       return updated
     })
   }, [])

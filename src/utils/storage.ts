@@ -1,18 +1,37 @@
 import type { Document } from '@/types'
+import { readAllFromStore, writeAllToStore } from '@/utils/indexedDb'
 
-const STORAGE_KEY = 'docscanner_documents'
+const STORAGE_STORE = 'documents'
+const LEGACY_STORAGE_KEY = 'docscanner_documents'
 
-export function loadDocuments(): Document[] {
+export async function loadDocuments(): Promise<Document[]> {
+  const documents = await readAllFromStore<Document>(STORAGE_STORE)
+
+  if (documents.length > 0) {
+    return documents
+  }
+
+  if (typeof window === 'undefined') {
+    return []
+  }
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as Document[]) : []
+    const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
+    if (!raw) {
+      return []
+    }
+
+    const parsed = JSON.parse(raw) as Document[]
+    await saveDocuments(parsed)
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+    return parsed
   } catch {
     return []
   }
 }
 
-export function saveDocuments(docs: Document[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(docs))
+export async function saveDocuments(docs: Document[]): Promise<void> {
+  await writeAllToStore(STORAGE_STORE, docs)
 }
 
 export function generateId(): string {
