@@ -1,0 +1,20 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "18080:80"
+      - "18443:443"
+
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      HOST: 0.0.0.0
+    volumes:
+      - .:/app
+      - /app/node_modules

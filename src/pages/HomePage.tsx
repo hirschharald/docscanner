@@ -12,16 +12,26 @@ interface HomePageProps {
 
 export const HomePage = React.memo<HomePageProps>(({ documents, onDelete, onRename, onCrop }) => {
   const [query, setQuery] = useState('')
+  const [selectedYear, setSelectedYear] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null)
+
+  const yearOptions = useMemo(() => Array.from(new Set(documents.flatMap((d) => d.tags.filter((t) => t.startsWith('Jahr:')).map((t) => t.replace('Jahr:', ''))))).sort((a, b) => Number(b) - Number(a)), [documents])
+  const categoryOptions = useMemo(() => Array.from(new Set(documents.flatMap((d) => d.tags.filter((t) => t.startsWith('Kategorie:')).map((t) => t.replace('Kategorie:', ''))))).sort(), [documents])
 
   const filtered = useMemo(
     () =>
-      documents.filter(
-        (d) =>
+      documents.filter((d) => {
+        const matchesQuery =
           d.name.toLowerCase().includes(query.toLowerCase()) ||
           d.tags.some((t) => t.toLowerCase().includes(query.toLowerCase()))
-      ),
-    [documents, query]
+
+        const matchesYear = !selectedYear || d.tags.includes(`Jahr:${selectedYear}`)
+        const matchesCategory = !selectedCategory || d.tags.includes(`Kategorie:${selectedCategory}`)
+
+        return matchesQuery && matchesYear && matchesCategory
+      }),
+    [documents, query, selectedYear, selectedCategory]
   )
 
   return (
@@ -31,24 +41,47 @@ export const HomePage = React.memo<HomePageProps>(({ documents, onDelete, onRena
         <span className="badge bg-secondary fs-6">{documents.length} Dokument{documents.length !== 1 ? 'e' : ''}</span>
       </div>
 
-      <div className="input-group mb-4">
-        <span className="input-group-text">🔍</span>
-        <input
-          type="search"
-          className="form-control"
-          placeholder="Nach Name oder Tag suchen…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      <div className="row g-2 mb-4">
+        <div className="col-md-4">
+          <label className="form-label small fw-semibold">Jahr</label>
+          <select className="form-select" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+            <option value="">Alle Jahre</option>
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-md-4">
+          <label className="form-label small fw-semibold">Kategorie</label>
+          <select className="form-select" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+            <option value="">Alle Kategorien</option>
+            {categoryOptions.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-md-4">
+          <label className="form-label small fw-semibold">Suche</label>
+          <div className="input-group">
+            <span className="input-group-text">🔍</span>
+            <input
+              type="search"
+              className="form-control"
+              placeholder="Name oder Tag…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-5 text-muted">
           <div className="display-1">📭</div>
           <p className="mt-3 fs-5">
-            {query ? 'Keine Dokumente gefunden.' : 'Noch keine Dokumente vorhanden.'}
+            {query || selectedYear || selectedCategory ? 'Keine Dokumente gefunden.' : 'Noch keine Dokumente vorhanden.'}
           </p>
-          {!query && (
+          {!query && !selectedYear && !selectedCategory && (
             <div className="d-flex gap-2 justify-content-center">
               <a href="/scan" className="btn btn-primary">📷 Scannen</a>
               <a href="/upload" className="btn btn-outline-primary">📁 Hochladen</a>

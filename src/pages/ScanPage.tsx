@@ -2,6 +2,9 @@ import React, { useRef, useState, useCallback, useEffect } from 'react'
 import type { Document } from '@/types'
 import { CropModal } from '@/components/CropModal'
 
+const yearOptions = Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - index)
+const categoryOptions = ['Haus', 'Steuer', 'Bank', 'Privat', 'Sonstiges']
+
 interface ScanPageProps {
   onAdd: (name: string, dataUrl: string, type: Document['type'], tags?: string[]) => void
 }
@@ -15,6 +18,8 @@ export const ScanPage = React.memo<ScanPageProps>(({ onAdd }) => {
   const [cropping, setCropping] = useState(false)
   const [docName, setDocName] = useState('')
   const [tags, setTags] = useState('')
+  const [selectedYear, setSelectedYear] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -133,10 +138,18 @@ export const ScanPage = React.memo<ScanPageProps>(({ onAdd }) => {
   const handleSave = () => {
     if (!captured) return
     const name = docName.trim() || `Scan ${new Date().toLocaleDateString('de-DE')}`
-    const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
+    // const freeTagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
+    const metadataTags = [
+      ...(selectedYear ? [`Jahr:${selectedYear}`] : []),
+      ...(selectedCategory ? [`Kategorie:${selectedCategory}`] : []),
+    ]
+    const tagList = Array.from(new Set([...metadataTags]))
+
     onAdd(name, captured, 'scan', tagList)
     setDocName('')
     setTags('')
+    setSelectedYear('')
+    setSelectedCategory('')
     setCaptured(null)
     setSaved(true)
   }
@@ -205,7 +218,7 @@ export const ScanPage = React.memo<ScanPageProps>(({ onAdd }) => {
       {captured && !cropping && (
         <div className="card p-3">
           <div className="mb-3">
-            <label className="form-label fw-semibold">Dokumentname</label>
+            <label className="form-label fw-semibold">Aussteller</label>
             <input
               type="text"
               className="form-control"
@@ -215,11 +228,37 @@ export const ScanPage = React.memo<ScanPageProps>(({ onAdd }) => {
             />
           </div>
           <div className="mb-3">
+            <label className="form-label fw-semibold">Jahr</label>
+            <select
+              className="form-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="">Bitte wählen</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-3">
+            <label className="form-label fw-semibold">Kategorie</label>
+            <select
+              className="form-select"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="">Bitte wählen</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-3">
             <label className="form-label fw-semibold">Tags (kommagetrennt)</label>
             <input
               type="text"
               className="form-control"
-              placeholder="z.B. Rechnung, 2025, Wichtig"
+              placeholder="z.B. Wichtig, dringend"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
             />
