@@ -17,7 +17,7 @@ export const ScanPage = React.memo<ScanPageProps>(({ onAdd }) => {
   const [captured, setCaptured] = useState<string | null>(null)
   const [cropping, setCropping] = useState(false)
   const [docName, setDocName] = useState('')
-  const [tags, setTags] = useState('')
+  // const [tags, setTags] = useState('')
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -147,7 +147,7 @@ export const ScanPage = React.memo<ScanPageProps>(({ onAdd }) => {
 
     onAdd(name, captured, 'scan', tagList)
     setDocName('')
-    setTags('')
+    // setTags('')
     setSelectedYear('')
     setSelectedCategory('')
     setCaptured(null)
@@ -253,16 +253,7 @@ export const ScanPage = React.memo<ScanPageProps>(({ onAdd }) => {
               ))}
             </select>
           </div>
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Tags (kommagetrennt)</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="z.B. Wichtig, dringend"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-            />
-          </div>
+          
           <div className="d-flex gap-2">
             <button className="btn btn-success flex-fill" onClick={handleSave}>💾 Speichern</button>
             <button className="btn btn-outline-primary" onClick={() => setCropping(true)} title="Erneut zuschneiden">✂️ Zuschneiden</button>

@@ -61,13 +61,13 @@ export const HomePage = React.memo<HomePageProps>(({ documents, onDelete, onRena
           </select>
         </div>
         <div className="col-md-4">
-          <label className="form-label small fw-semibold">Suche</label>
+          <label className="form-label small fw-semibold">Austeller</label>
           <div className="input-group">
             <span className="input-group-text">🔍</span>
             <input
               type="search"
               className="form-control"
-              placeholder="Name oder Tag…"
+              placeholder="Austeller"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />

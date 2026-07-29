@@ -32,6 +32,8 @@ export const DocumentModal = React.memo<DocumentModalProps>(({ document, onClose
     a.click()
   }
 
+  const metadataTags = document.tags.filter((tag) => tag.includes(':'))
+
   if (cropping) {
     return (
       <CropModal
@@ -57,10 +59,21 @@ export const DocumentModal = React.memo<DocumentModalProps>(({ document, onClose
               style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '0.375rem' }}
             />
           </div>
-          <div className="modal-footer justify-content-between">
-            <small className="text-muted">
-              {formatDate(document.createdAt)} · {document.type === 'scan' ? '📷 Scan' : '📁 Upload'}
-            </small>
+          <div className="modal-footer justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+              <small className="text-muted d-block">
+                {formatDate(document.createdAt)} · {document.type === 'scan' ? '📷 Scan' : '📁 Upload'}
+              </small>
+              {metadataTags.length > 0 && (
+                <div className="mt-2 d-flex flex-wrap gap-2">
+                  {metadataTags.map((tag) => (
+                    <span key={tag} className="badge bg-light text-dark">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="d-flex gap-2">
               {onCropSave && (
                 <button className="btn btn-outline-primary btn-sm" onClick={() => setCropping(true)}>

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Document } from '@/types'
+import { uploadDocumentsToBackend } from '@/utils/api'
 import { loadDocuments, saveDocuments, generateId } from '@/utils/storage'
 
 export function useDocuments() {
@@ -37,6 +38,7 @@ export function useDocuments() {
     setDocuments((prev) => {
       const updated = [doc, ...prev]
       void saveDocuments(updated)
+      void uploadDocumentsToBackend([doc]).catch(() => undefined)
       return updated
     })
 
