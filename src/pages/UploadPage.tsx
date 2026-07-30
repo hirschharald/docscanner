@@ -2,6 +2,10 @@ import React, { useState, useCallback, useRef } from 'react'
 import type { Document } from '@/types'
 import { CropModal } from '@/components/CropModal'
 
+const yearOptions = Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - index)
+const categoryOptions = ['Haus', 'Steuer', 'Bank', 'Privat', 'Sonstiges']
+
+
 interface PreviewItem {
   file: File
   dataUrl: string
@@ -18,6 +22,8 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
   const [saved, setSaved] = useState(false)
   const [cropIndex, setCropIndex] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+    const [selectedYear, setSelectedYear] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
 
   const processFiles = useCallback((files: FileList | null) => {
     if (!files) return
@@ -43,12 +49,23 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
   )
 
   const handleSaveAll = () => {
-    const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
+
+    
+    // const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
+    
+    const metadataTags = [
+      ...(selectedYear ? [`Jahr:${selectedYear}`] : []),
+      ...(selectedCategory ? [`Kategorie:${selectedCategory}`] : []),
+    ]
+    const tagList = Array.from(new Set([...metadataTags]))
     previews.forEach(({ file, dataUrl }) => {
-      onAdd(file.name.replace(/\.[^.]+$/, ''), dataUrl, 'upload', tagList)
+      const name = file.name.trim() || `Scan ${new Date().toLocaleDateString('de-DE')}`
+      // onAdd(file.name.replace(/\.[^.]+$/, ''), dataUrl, 'upload', tagList)
+      onAdd(name, dataUrl, 'upload', tagList)
     })
     setPreviews([])
-    setTags('')
+    setSelectedYear('')
+    setSelectedCategory('')
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
@@ -139,7 +156,32 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
               onChange={(e) => setTags(e.target.value)}
             />
           </div>
-
+<div className="mb-3">
+            <label className="form-label fw-semibold">Jahr</label>
+            <select
+              className="form-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="">Bitte wählen</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-3">
+            <label className="form-label fw-semibold">Kategorie</label>
+            <select
+              className="form-select"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="">Bitte wählen</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
           <button className="btn btn-success w-100" onClick={handleSaveAll}>
             💾 {previews.length} Dokument{previews.length > 1 ? 'e' : ''} speichern
           </button>

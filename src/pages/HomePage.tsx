@@ -6,7 +6,7 @@ import { DocumentModal } from '@/components/DocumentModal'
 interface HomePageProps {
   documents: Document[]
   onDelete: (id: string) => void
-  onRename: (id: string, name: string) => void
+  onRename: (id: string, name: string, tags: string[]) => void
   onCrop: (id: string, dataUrl: string) => void
 }
 

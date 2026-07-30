@@ -38,7 +38,7 @@ function App() {
                   <HomePage
                     documents={documents}
                     onDelete={removeDocument}
-                    onRename={(id, name) => updateDocument(id, { name })}
+                    onRename={(id, name, tags) => updateDocument(id, { name, tags })}
                     onCrop={cropDocument}
                   />
                 </ErrorBoundary>
