@@ -157,7 +157,7 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
             />
           </div>
 <div className="mb-3">
-            <label className="form-label fw-semibold">Jahr</label>
+            <label className="form-label fw-semibold">Jahr:</label>
             <select
               className="form-select"
               value={selectedYear}
@@ -170,7 +170,7 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
             </select>
           </div>
           <div className="mb-3">
-            <label className="form-label fw-semibold">Kategorie</label>
+            <label className="form-label fw-semibold">Kategorie:</label>
             <select
               className="form-select"
               value={selectedCategory}

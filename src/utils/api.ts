@@ -34,14 +34,14 @@ export async function uploadDocumentsToBackend(
 ): Promise<UploadDocumentsResult> {
   const endpoint = baseUrl ?? import.meta.env.VITE_API_URL
 
-  if (!endpoint) {
-    return { ok: true, skipped: true, message: 'No backend URL configured.' }
-  }
-
   const payload = documents.map((document) => ({
     ...document,
     metadata: parseMetadataTags(document.tags),
   }))
+  if (!endpoint) {
+    return { ok: true, skipped: true, message: 'No backend URL configured.' }
+  }
+
 
   const response = await fetch(endpoint, {
     method: 'POST',

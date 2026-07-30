@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import type { Document } from "@/types";
 import { formatDate } from "@/utils/storage";
 
+const yearOptions = Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - index)
+const categoryOptions = ['Haus', 'Steuer', 'Bank', 'Privat', 'Sonstiges']
+
+
 interface DocumentCardProps {
   document: Document;
   onDelete: (id: string) => void;
@@ -83,24 +87,29 @@ export const DocumentCard = React.memo<DocumentCardProps>(
                 autoFocus
                 placeholder="Name"
               />
-              <input
-                className="form-control"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleRename();
-                }}
-                placeholder="Jahr (z.B. 2025)"
-              />
-              <input
-                className="form-control"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleRename();
-                }}
-                placeholder="Kategorie"
-              />
+            <label className="form-label fw-semibold">Jahr:</label>
+            <select
+              className="form-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="">Bitte wählen</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+
+              <label className="form-label fw-semibold">Kategorie:</label>
+            <select
+              className="form-select"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="">Bitte wählen</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
               <div className="d-flex gap-1">
                 <button
                   className="btn btn-success btn-sm"
