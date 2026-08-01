@@ -11,6 +11,20 @@ export interface UploadDocumentsResult {
   message?: string
 }
 
+export interface BackendMetadataEntry {
+  id: string
+  name: string
+  type: string
+  createdAt: number
+  tags: string[]
+  metadata: Record<string, string>
+  year?: string
+  fileName?: string
+  outputPath?: string
+  storedAt?: string
+  bytes?: number
+}
+
 function parseMetadataTags(tags: string[]): Record<string, string> {
   return tags.reduce<Record<string, string>>((metadata, tag) => {
     const separatorIndex = tag.indexOf(':')
@@ -28,21 +42,28 @@ function parseMetadataTags(tags: string[]): Record<string, string> {
   }, {})
 }
 
+export async function fetchMetadataFromBackend(baseUrl?: string): Promise<BackendMetadataEntry[]> {
+  const endpoint = baseUrl ?? import.meta.env.VITE_API_URL ?? '/api/metadata'
+  const response = await fetch(endpoint)
+
+  if (!response.ok) {
+    throw new Error(`Backend request failed with status ${response.status}`)
+  }
+
+  const data = await response.json().catch(() => ({ metadata: [] }))
+  return Array.isArray(data?.metadata) ? data.metadata : []
+}
+
 export async function uploadDocumentsToBackend(
   documents: Document[],
   baseUrl?: string
 ): Promise<UploadDocumentsResult> {
-  const endpoint = baseUrl ?? import.meta.env.VITE_API_URL
+  const endpoint = baseUrl ?? import.meta.env.VITE_API_URL ?? '/api/documents'
 
   const payload = documents.map((document) => ({
     ...document,
     metadata: parseMetadataTags(document.tags),
   }))
-  if (!endpoint) {
-    return { ok: true, skipped: true, message: 'No backend URL configured.' }
-  }
-
-
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {

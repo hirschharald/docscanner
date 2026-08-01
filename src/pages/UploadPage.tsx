@@ -28,7 +28,7 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
   const processFiles = useCallback((files: FileList | null) => {
     if (!files) return
     Array.from(files)
-      .filter((f) => f.type.startsWith('image/'))
+      .filter((f) => f.type.startsWith('image/') || f.type === 'application/pdf')
       .forEach((file) => {
         const reader = new FileReader()
         reader.onload = (e) => {
@@ -83,6 +83,17 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
 
   const cropSrc = cropIndex !== null ? previews[cropIndex]?.dataUrl ?? null : null
 
+  const handleOpenPreview = (dataUrl: string) => {
+    window.open(dataUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleDownloadPreview = (fileName: string, dataUrl: string) => {
+    const link = document.createElement('a')
+    link.href = dataUrl
+    link.download = fileName
+    link.click()
+  }
+
   return (
     <div className="container py-4" style={{ maxWidth: 700 }}>
       <h2 className="mb-4">📁 Dokument hochladen</h2>
@@ -102,12 +113,12 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
         onClick={() => inputRef.current?.click()}
       >
         <div className="display-4 mb-2">📂</div>
-        <p className="mb-1 fw-semibold">Bilder hierher ziehen oder klicken</p>
-        <small className="text-muted">JPG, PNG, WebP, GIF – mehrere Dateien möglich</small>
+        <p className="mb-1 fw-semibold">Bilder oder PDFs hierher ziehen oder klicken</p>
+        <small className="text-muted">JPG, PNG, WebP, GIF oder PDF – mehrere Dateien möglich</small>
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.pdf"
           multiple
           className="d-none"
           onChange={(e) => processFiles(e.target.files)}
@@ -117,37 +128,66 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
       {previews.length > 0 && (
         <>
           <div className="row row-cols-2 row-cols-sm-3 g-3 mb-3">
-            {previews.map(({ file, dataUrl }, i) => (
-              <div key={i} className="col">
-                <div className="position-relative">
-                  <img
-                    src={dataUrl}
-                    alt={file.name}
-                    className="img-fluid rounded shadow-sm"
-                    style={{ height: 130, width: '100%', objectFit: 'cover' }}
-                  />
-                  <div className="position-absolute top-0 end-0 m-1 d-flex flex-column gap-1">
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => setCropIndex(i)}
-                      title="Zuschneiden"
-                      style={{ borderRadius: '50%', width: 28, height: 28, padding: 0, fontSize: '0.8rem' }}
-                    >✂️</button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => removePreview(i)}
-                      aria-label="Entfernen"
-                      style={{ borderRadius: '50%', width: 28, height: 28, padding: 0 }}
-                    >✕</button>
+            {previews.map(({ file, dataUrl }, i) => {
+              const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+
+              return (
+                <div key={i} className="col">
+                  <div className="position-relative">
+                    {isPdf ? (
+                      <iframe
+                        src={dataUrl}
+                        title={file.name}
+                        className="rounded shadow-sm"
+                        style={{ height: 130, width: '100%', border: 'none', background: '#fff' }}
+                      />
+                    ) : (
+                      <img
+                        src={dataUrl}
+                        alt={file.name}
+                        className="img-fluid rounded shadow-sm"
+                        style={{ height: 130, width: '100%', objectFit: 'cover' }}
+                      />
+                    )}
+                    <div className="position-absolute top-0 end-0 m-1 d-flex flex-column gap-1">
+                      {!isPdf && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => setCropIndex(i)}
+                          title="Zuschneiden"
+                          style={{ borderRadius: '50%', width: 28, height: 28, padding: 0, fontSize: '0.8rem' }}
+                        >✂️</button>
+                      )}
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => removePreview(i)}
+                        aria-label="Entfernen"
+                        style={{ borderRadius: '50%', width: 28, height: 28, padding: 0 }}
+                      >✕</button>
+                    </div>
+                    {isPdf && (
+                      <div className="position-absolute bottom-0 start-0 end-0 m-1 d-flex gap-1">
+                        <button
+                          className="btn btn-sm btn-outline-light"
+                          onClick={() => handleOpenPreview(dataUrl)}
+                          title="Öffnen"
+                        >🔎</button>
+                        <button
+                          className="btn btn-sm btn-outline-light"
+                          onClick={() => handleDownloadPreview(file.name, dataUrl)}
+                          title="Herunterladen"
+                        >⬇️</button>
+                      </div>
+                    )}
                   </div>
+                  <small className="d-block text-truncate mt-1 text-muted">{file.name}</small>
                 </div>
-                <small className="d-block text-truncate mt-1 text-muted">{file.name}</small>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="mb-3">
-            <label className="form-label fw-semibold">Tags für alle (kommagetrennt)</label>
+            <label className="form-label fw-semibold">Rechnungsausteller</label>
             <input
               type="text"
               className="form-control"

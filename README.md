@@ -30,3 +30,27 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Backend document storage
+
+The backend endpoint `POST /api/documents` stores each uploaded document in a year-based folder structure:
+
+- Default base path: `doc`
+- Target path pattern: `doc/<year>/<filename>`
+- Year resolution order:
+  - `metadata.Jahr`
+  - `metadata.jahr`
+  - `metadata.year`
+  - fallback to `createdAt` year, then current year
+
+You can configure the base path with an environment variable:
+
+```bash
+DOCS_BASE_PATH=/absolute/or/relative/path
+```
+
+Example:
+
+```bash
+DOCS_BASE_PATH=./documents node server/server.js
+```

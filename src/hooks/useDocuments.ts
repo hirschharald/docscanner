@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Document } from '@/types'
-import { uploadDocumentsToBackend } from '@/utils/api'
+import { fetchMetadataFromBackend, uploadDocumentsToBackend } from '@/utils/api'
 import { loadDocuments, saveDocuments, generateId } from '@/utils/storage'
 
 export function useDocuments() {
@@ -9,9 +9,41 @@ export function useDocuments() {
   useEffect(() => {
     let active = true
 
-    void loadDocuments().then((loaded) => {
-      if (active) {
-        setDocuments(loaded)
+    void loadDocuments().then(async (loaded) => {
+      if (!active) return
+
+      try {
+        const backendMetadata = await fetchMetadataFromBackend()
+        const merged = loaded.map((document) => {
+          const metadataEntry = backendMetadata.find((entry) => entry.id === document.id)
+
+          if (!metadataEntry) {
+            return document
+          }
+
+          const mergedTags = Array.from(new Set([...(document.tags || []), ...(metadataEntry.tags || [])]))
+          const mergedMetadata = {
+            ...(document.tags ? {} : {}),
+            ...(metadataEntry.metadata || {}),
+          }
+
+          return {
+            ...document,
+            tags: mergedTags,
+            name: document.name || metadataEntry.name || 'Dokument',
+            createdAt: document.createdAt || metadataEntry.createdAt || Date.now(),
+            metadata: mergedMetadata,
+          } as Document & { metadata?: Record<string, string> }
+        })
+
+        if (active) {
+          setDocuments(merged as Document[])
+          void saveDocuments(merged as Document[])
+        }
+      } catch {
+        if (active) {
+          setDocuments(loaded)
+        }
       }
     })
 

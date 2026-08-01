@@ -66,14 +66,26 @@ export const DocumentCard = React.memo<DocumentCardProps>(
       setSelectedCategory(tagObject.Kategorie ?? "");
     };
 
+    const isPdf = document.dataUrl.startsWith('data:application/pdf') || document.name.toLowerCase().endsWith('.pdf')
+
     return (
       <div className="card doc-card shadow-sm h-100">
-        <img
-          src={document.dataUrl}
-          alt={document.name}
-          className="doc-preview-img"
-          onClick={() => onView(document)}
-        />
+        {isPdf ? (
+          <iframe
+            src={document.dataUrl}
+            title={document.name}
+            className="doc-preview-img"
+            onClick={() => onView(document)}
+            style={{ border: 'none', background: '#fff' }}
+          />
+        ) : (
+          <img
+            src={document.dataUrl}
+            alt={document.name}
+            className="doc-preview-img"
+            onClick={() => onView(document)}
+          />
+        )}
         <div className="card-body d-flex flex-column gap-1 p-2">
           {editing ? (
             <div className="d-flex flex-column gap-2">

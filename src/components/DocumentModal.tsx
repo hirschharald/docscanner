@@ -33,6 +33,7 @@ export const DocumentModal = React.memo<DocumentModalProps>(({ document, onClose
   }
 
   const metadataTags = document.tags.filter((tag) => tag.includes(':'))
+  const isPdf = document.dataUrl.startsWith('data:application/pdf') || document.name.toLowerCase().endsWith('.pdf')
 
   if (cropping) {
     return (
@@ -53,11 +54,19 @@ export const DocumentModal = React.memo<DocumentModalProps>(({ document, onClose
             <button className="btn-close" onClick={onClose} aria-label="Schließen" />
           </div>
           <div className="modal-body p-2 text-center bg-dark">
-            <img
-              src={document.dataUrl}
-              alt={document.name}
-              style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '0.375rem' }}
-            />
+            {isPdf ? (
+              <iframe
+                src={document.dataUrl}
+                title={document.name}
+                style={{ width: '100%', maxWidth: '100%', height: '70vh', borderRadius: '0.375rem', border: 'none' }}
+              />
+            ) : (
+              <img
+                src={document.dataUrl}
+                alt={document.name}
+                style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '0.375rem' }}
+              />
+            )}
           </div>
           <div className="modal-footer justify-content-between align-items-start flex-wrap gap-3">
             <div>
