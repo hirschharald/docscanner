@@ -1,5 +1,6 @@
 import type { Document } from '@/types'
 
+
 export interface BackendDocumentPayload extends Document {
   metadata: Record<string, string>
 }
@@ -58,6 +59,7 @@ export async function uploadDocumentsToBackend(
   documents: Document[],
   baseUrl?: string
 ): Promise<UploadDocumentsResult> {
+
   const endpoint = baseUrl ?? import.meta.env.VITE_API_URL ?? '/api/documents'
 
   const payload = documents.map((document) => ({

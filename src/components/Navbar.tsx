@@ -1,13 +1,15 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
-import type { Theme } from '@/types'
+import React from "react";
+import { NavLink } from "react-router-dom";
+import type { Theme } from "@/types";
 
 interface NavbarProps {
-  theme: Theme
-  onToggleTheme: () => void
+  theme: Theme;
+  onToggleTheme: () => void;
+  onToArchive?: () => void;
 }
 
-export const Navbar = React.memo<NavbarProps>(({ theme, onToggleTheme }) => (
+export const Navbar = React.memo<NavbarProps>(({ theme, onToggleTheme, onToArchive }) => (
+
   <nav className="navbar navbar-expand-md bg-primary navbar-dark shadow-sm">
     <div className="container">
       <NavLink className="navbar-brand fw-bold" to="/">
@@ -27,13 +29,29 @@ export const Navbar = React.memo<NavbarProps>(({ theme, onToggleTheme }) => (
       <div className="collapse navbar-collapse" id="navMenu">
         <ul className="navbar-nav me-auto">
           <li className="nav-item">
-            <NavLink className="nav-link" to="/" end>Übersicht</NavLink>
+            <NavLink className="nav-link" to="/" end>
+              Übersicht
+            </NavLink>
           </li>
           <li className="nav-item">
-            <NavLink className="nav-link" to="/scan">Scannen</NavLink>
+            <NavLink className="nav-link" to="/scan">
+              Scannen
+            </NavLink>
           </li>
           <li className="nav-item">
-            <NavLink className="nav-link" to="/upload">Hochladen</NavLink>
+            <NavLink className="nav-link" to="/upload">
+              Hochladen
+            </NavLink>
+          </li>
+          <li className="nav-item">
+            <button
+              // className="btn btn-outline-light btn-sm"
+              className="nav-link"
+              onClick={onToArchive}
+              aria-label="Speichern"
+            >
+              Speichern
+            </button>
           </li>
         </ul>
         <button
@@ -41,11 +59,11 @@ export const Navbar = React.memo<NavbarProps>(({ theme, onToggleTheme }) => (
           onClick={onToggleTheme}
           aria-label="Theme wechseln"
         >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"}
         </button>
       </div>
     </div>
   </nav>
-))
+));
 
-Navbar.displayName = 'Navbar'
+Navbar.displayName = "Navbar";

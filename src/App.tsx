@@ -23,11 +23,11 @@ const PageLoader = () => (
 
 function App() {
   const { theme, toggleTheme } = useTheme()
-  const { documents, addDocument, removeDocument, updateDocument, cropDocument } = useDocuments()
+  const { documents, addDocument, removeDocument, updateDocument, cropDocument ,toArchive} = useDocuments()
 
   return (
     <BrowserRouter>
-      <Navbar theme={theme} onToggleTheme={toggleTheme} />
+      <Navbar theme={theme} onToggleTheme={toggleTheme} onToArchive={toArchive} />
       <main>
         <Suspense fallback={<PageLoader />}>
           <Routes>

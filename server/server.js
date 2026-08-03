@@ -3,10 +3,11 @@ import cors from 'cors'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import Database from 'better-sqlite3'
+import 'dotenv/config'
 
 const app = express()
-const port = process.env.PORT || 3001
-const documentsBaseDir = path.resolve(process.cwd(), process.env.DOCS_BASE_PATH || 'doc')
+const port = process.env.PORT ?? 3001
+const documentsBaseDir = path.resolve(process.cwd(), process.env.DOCS_BASE_PATH || 'docs')
 const metadataDbPath = path.resolve(process.cwd(), process.env.METADATA_DB_PATH || path.join(documentsBaseDir, 'metadata.db'))
 let metadataDb
 
@@ -158,7 +159,7 @@ function loadMetadataDb() {
     metadata: JSON.parse(row.metadata || '{}'),
   }))
 }
-
+//  save a single metadata entry to the database
 function saveMetadataEntry(record) {
   const insert = metadataDb.prepare(`
     INSERT OR REPLACE INTO metadata_entries (
@@ -180,7 +181,7 @@ function saveMetadataEntry(record) {
     record.bytes || null,
   )
 }
-
+//  persist the document metadata to the database
 async function persistDocumentMetadata(document, fileInfo) {
   const metadataEntries = Array.isArray(document?.tags) ? parseMetadataTags(document.tags) : {}
   const combinedMetadata = {
@@ -205,7 +206,7 @@ async function persistDocumentMetadata(document, fileInfo) {
   saveMetadataEntry(record)
   return record
 }
-
+//  store the document to the filesystem and return file information
 async function storeDocument(document, index) {
   const year = extractYear(document)
   const outputDir = path.join(documentsBaseDir, year)
