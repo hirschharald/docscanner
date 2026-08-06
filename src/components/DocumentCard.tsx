@@ -72,7 +72,7 @@ export const DocumentCard = React.memo<DocumentCardProps>(
       <div className="card doc-card shadow-sm h-100">
         {isPdf ? (
           <iframe
-            src={document.dataUrl}
+            src={`http://localhost:3003/api/documents/${document.id}`}
             title={document.name}
             className="doc-preview-img"
             onClick={() => onView(document)}
@@ -80,7 +80,7 @@ export const DocumentCard = React.memo<DocumentCardProps>(
           />
         ) : (
           <img
-            src={document.dataUrl}
+            src={`http://localhost:3003/api/documents/${document.id}`}
             alt={document.name}
             className="doc-preview-img"
             onClick={() => onView(document)}

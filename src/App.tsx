@@ -23,7 +23,7 @@ const PageLoader = () => (
 
 function App() {
   const { theme, toggleTheme } = useTheme()
-  const { documents, addDocument, removeDocument, updateDocument, cropDocument ,toArchive} = useDocuments()
+  const { documents, archivedDocuments, addDocument, removeDocument, updateDocument, cropDocument, toArchive } = useDocuments()
 
   return (
     <BrowserRouter>
@@ -37,6 +37,7 @@ function App() {
                 <ErrorBoundary>
                   <HomePage
                     documents={documents}
+                    archivedDocuments={archivedDocuments}
                     onDelete={removeDocument}
                     onRename={(id, name, tags) => updateDocument(id, { name, tags })}
                     onCrop={cropDocument}

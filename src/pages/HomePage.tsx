@@ -5,23 +5,24 @@ import { DocumentModal } from '@/components/DocumentModal'
 
 interface HomePageProps {
   documents: Document[]
+  archivedDocuments: Document[]
   onDelete: (id: string) => void
   onRename: (id: string, name: string, tags: string[]) => void
   onCrop: (id: string, dataUrl: string) => void
 }
-
-export const HomePage = React.memo<HomePageProps>(({ documents, onDelete, onRename, onCrop }) => {
+// load documents from backend metadata
+export const HomePage = React.memo<HomePageProps>(({ documents, archivedDocuments, onDelete, onRename, onCrop }) => {
   const [query, setQuery] = useState('')
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null)
 
-  const yearOptions = useMemo(() => Array.from(new Set(documents.flatMap((d) => d.tags.filter((t) => t.startsWith('Jahr:')).map((t) => t.replace('Jahr:', ''))))).sort((a, b) => Number(b) - Number(a)), [documents])
-  const categoryOptions = useMemo(() => Array.from(new Set(documents.flatMap((d) => d.tags.filter((t) => t.startsWith('Kategorie:')).map((t) => t.replace('Kategorie:', ''))))).sort(), [documents])
+  const yearOptions = useMemo(() => Array.from(new Set(archivedDocuments.flatMap((d) => d.tags.filter((t) => t.startsWith('Jahr:')).map((t) => t.replace('Jahr:', ''))))).sort((a, b) => Number(b) - Number(a)), [documents])
+  const categoryOptions = useMemo(() => Array.from(new Set(archivedDocuments.flatMap((d) => d.tags.filter((t) => t.startsWith('Kategorie:')).map((t) => t.replace('Kategorie:', ''))))).sort(), [documents])
 
   const filtered = useMemo(
     () =>
-      documents.filter((d) => {
+      archivedDocuments.filter((d) => {
         const matchesQuery =
           d.name.toLowerCase().includes(query.toLowerCase()) ||
           d.tags.some((t) => t.toLowerCase().includes(query.toLowerCase()))
@@ -31,7 +32,7 @@ export const HomePage = React.memo<HomePageProps>(({ documents, onDelete, onRena
 
         return matchesQuery && matchesYear && matchesCategory
       }),
-    [documents, query, selectedYear, selectedCategory]
+    [archivedDocuments, query, selectedYear, selectedCategory]
   )
 
   return (

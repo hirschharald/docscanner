@@ -232,6 +232,39 @@ async function storeDocument(document, index) {
   }
 }
 
+function getMetadataEntryById(id) {
+  const row = metadataDb.prepare('SELECT * FROM metadata_entries WHERE id = ?').get(id)
+
+  if (!row) {
+    return null
+  }
+
+  return {
+    ...row,
+    tags: JSON.parse(row.tags || '[]'),
+    metadata: JSON.parse(row.metadata || '{}'),
+  }
+}
+
+function resolveDocumentFilePath(entry) {
+  const baseDir = path.resolve(documentsBaseDir)
+  const candidates = []
+
+  if (entry?.outputPath) {
+    candidates.push(path.resolve(entry.outputPath))
+  }
+
+  if (entry?.fileName) {
+    const year = entry?.year || extractYear(entry)
+    candidates.push(path.resolve(baseDir, year, entry.fileName))
+  }
+
+  return candidates.find((candidate) => candidate === baseDir || candidate.startsWith(baseDir + path.sep)) || null
+}
+
+
+
+
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 
@@ -302,6 +335,27 @@ app.get('/api/metadata/:id', (req, res) => {
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'docscanner-api' })
+})
+
+app.get('/api/documents/:id', async (req, res) => {
+  const entry = getMetadataEntryById(req.params.id)
+
+  if (!entry) {
+    return res.status(404).json({ ok: false, message: 'Document not found' })
+  }
+
+  const filePath = resolveDocumentFilePath(entry)
+
+  if (!filePath) {
+    return res.status(404).json({ ok: false, message: 'Document file not found' })
+  }
+
+  try {
+    await fs.access(filePath)
+    return res.sendFile(filePath)
+  } catch {
+    return res.status(404).json({ ok: false, message: 'Document file not found' })
+  }
 })
 
 app.listen(port, () => {

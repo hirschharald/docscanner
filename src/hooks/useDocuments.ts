@@ -5,24 +5,45 @@ import {
   uploadDocumentsToBackend,
 } from "@/utils/api";
 import { loadDocuments, saveDocuments, generateId } from "@/utils/storage";
+import { loadDocumentsFromBackend } from "@/utils/storageBackend";
 
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [archivedDocuments, setArchivedDocuments] = useState<Document[]>([]);
 
   useEffect(() => {
     let active = true;
-    fetchMetadataFromBackend()
-      .then(async (backendMetadata) => {
+ 
+    void loadDocumentsFromBackend().then(async (backendMetadata) => {
+      try {
         console.log("Fetched metadata from backend:", backendMetadata);
-      })
-      .catch(() => undefined); // fetch metadata from backend on mount
+        const loaded = backendMetadata.map((entry) => ({
+          id: entry.id,
+          name: entry.name || "Dokument",
+          dataUrl: "",
+          type: entry.type || "image",
+          createdAt: entry.createdAt || Date.now(),
+          tags: entry.tags || [],
+          metadata: entry.metadata || {},
+        })) as Document[];
 
-    //  load documents from local storage and merge with backend metadata
+        if (active) {
+          setArchivedDocuments(loaded as Document[]);
+          // void saveDocuments(loaded as Document[]);
+        }
+      } catch {
+        if (active) {
+          setDocuments([]);
+        }
+      }
+    });
+    if (!active) return;
     void loadDocuments().then(async (loaded) => {
       if (!active) return;
 
       try {
         const backendMetadata = await fetchMetadataFromBackend();
+        console.log("Fetched metadata from backend:", backendMetadata);
         const merged = loaded.map((document) => {
           const metadataEntry = backendMetadata.find(
             (entry) => entry.id === document.id,
@@ -131,6 +152,7 @@ export function useDocuments() {
 
   return {
     documents,
+    archivedDocuments,
     addDocument,
     removeDocument,
     updateDocument,
