@@ -44,7 +44,7 @@ function parseMetadataTags(tags: string[]): Record<string, string> {
 }
 
 export async function fetchMetadataFromBackend(baseUrl?: string): Promise<BackendMetadataEntry[]> {
-  const endpoint = baseUrl ?? import.meta.env.VITE_API_URL ?? '/api/metadata'
+  const endpoint = baseUrl ?? `${import.meta.env.VITE_API_URL ?? '/api'}/metadata`
   const response = await fetch(endpoint)
 
   if (!response.ok) {
@@ -60,7 +60,7 @@ export async function uploadDocumentsToBackend(
   baseUrl?: string
 ): Promise<UploadDocumentsResult> {
 
-  const endpoint = baseUrl ?? import.meta.env.VITE_API_URL ?? '/api/documents'
+  const endpoint = baseUrl ?? `${import.meta.env.VITE_API_URL ?? '/api'}/metadata`
 
   const payload = documents.map((document) => ({
     ...document,

@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import type { Document } from "@/types";
 import { formatDate } from "@/utils/storage";
 
+const API_DOC_URL = `${import.meta.env.VITE_API_URL ?? '/api'}/documents`
+
 const yearOptions = Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - index)
 const categoryOptions = ['Haus', 'Steuer', 'Bank', 'Privat', 'Sonstiges']
 
@@ -72,7 +74,7 @@ export const DocumentCard = React.memo<DocumentCardProps>(
       <div className="card doc-card shadow-sm h-100">
         {isPdf ? (
           <iframe
-            src={`http://localhost:3003/api/documents/${document.id}`}
+            src={API_DOC_URL + '/' + document.id}
             title={document.name}
             className="doc-preview-img"
             onClick={() => onView(document)}
@@ -80,7 +82,7 @@ export const DocumentCard = React.memo<DocumentCardProps>(
           />
         ) : (
           <img
-            src={`http://localhost:3003/api/documents/${document.id}`}
+            src={API_DOC_URL + '/' + document.id}
             alt={document.name}
             className="doc-preview-img"
             onClick={() => onView(document)}
