@@ -49,9 +49,6 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
   )
 
   const handleSaveAll = () => {
-
-    
-    // const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
     
     const metadataTags = [
       ...(selectedYear ? [`Jahr:${selectedYear}`] : []),

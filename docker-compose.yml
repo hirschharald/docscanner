@@ -1,20 +1,48 @@
 services:
+  docscanner-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: docscanner
+      POSTGRES_USER: docscanner
+      POSTGRES_PASSWORD: docscanner
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docscanner -d docscanner"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   web:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      docscanner-db:
+        condition: service_healthy
     ports:
       - "18080:80"
       - "18443:443"
+    environment:
+      DATABASE_URL: postgresql://docscanner:docscanner@docscanner-db:5433/docscanner
 
   dev:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    depends_on:
+      docscanner-db:
+        condition: service_healthy
     ports:
       - "5173:5173"
     environment:
       HOST: 0.0.0.0
+      DATABASE_URL: postgresql://docscanner:docscanner@docscanner-db:5433/docscanner
     volumes:
       - .:/app
       - /app/node_modules
+
+volumes:
+  postgres_data:

@@ -29,7 +29,7 @@ export const HomePage = React.memo<HomePageProps>(
             ),
           ),
         ).sort((a, b) => Number(b) - Number(a)),
-      [documents],
+      [archivedDocuments],
     );
     const categoryOptions = useMemo(
       () =>
@@ -66,9 +66,9 @@ export const HomePage = React.memo<HomePageProps>(
     return (
       <div className="container py-4">
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
-          <h2 className="mb-0">📚 Meine Dokumente</h2>
+          <h2 className="mb-0">📚 Dokumente</h2>
           <span className="badge bg-secondary fs-6">
-            {documents.length} Dokument{documents.length !== 1 ? "e" : ""}
+            {filtered.length} Dokument{filtered.length !== 1 ? "e" : ""}
           </span>
         </div>
 

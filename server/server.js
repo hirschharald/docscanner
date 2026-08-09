@@ -2,18 +2,19 @@ import express from 'express'
 import cors from 'cors'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import Database from 'better-sqlite3'
 import 'dotenv/config'
+import { createMetadataStore } from './postgressStore.js'
 
 const app = express()
 const port = process.env.PORT ?? 3001
 const documentsBaseDir = path.resolve(process.cwd(), process.env.DOCS_BASE_PATH || 'docs')
-const metadataDbPath = path.resolve(process.cwd(), process.env.METADATA_DB_PATH || path.join(documentsBaseDir, 'metadata.db'))
-let metadataDb
+const connectionString = process.env.DATABASE_URL || process.env.PG_CONNECTION_STRING || 'postgresql://docscanner:docscanner@localhost:5433/docscanner'
+const metadataDbPath = process.env.METADATA_DB_PATH || connectionString
+let metadataStore
+let shuttingDown = false
 
 await fs.mkdir(documentsBaseDir, { recursive: true })
-await fs.mkdir(path.dirname(metadataDbPath), { recursive: true })
-metadataDb = new Database(metadataDbPath)
+metadataStore = createMetadataStore({ connectionString, documentsBaseDir })
 
 function sanitizeName(input) {
   return String(input || '')
@@ -95,91 +96,15 @@ function parseMetadataTags(tags = []) {
 }
 
 async function initializeMetadataDb() {
-  await fs.mkdir(path.dirname(metadataDbPath), { recursive: true })
-
-  metadataDb.exec(`
-    CREATE TABLE IF NOT EXISTS metadata_entries (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      type TEXT NOT NULL,
-      createdAt INTEGER NOT NULL,
-      tags TEXT NOT NULL DEFAULT '[]',
-      metadata TEXT NOT NULL DEFAULT '{}',
-      year TEXT,
-      fileName TEXT,
-      outputPath TEXT,
-      storedAt TEXT NOT NULL,
-      bytes INTEGER
-    )
-  `)
-
-  const legacyFilePath = path.resolve(process.cwd(), path.join(documentsBaseDir, 'metadata-db.json'))
-  try {
-    const legacyRaw = await fs.readFile(legacyFilePath, 'utf8')
-    const legacyEntries = JSON.parse(legacyRaw)
-
-    if (Array.isArray(legacyEntries) && legacyEntries.length > 0) {
-      const insert = metadataDb.prepare(`
-        INSERT OR REPLACE INTO metadata_entries (
-          id, name, type, createdAt, tags, metadata, year, fileName, outputPath, storedAt, bytes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-
-      const transaction = metadataDb.transaction((entries) => {
-        for (const entry of entries) {
-          insert.run(
-            entry.id,
-            entry.name || 'document',
-            entry.type || 'upload',
-            entry.createdAt || Date.now(),
-            JSON.stringify(entry.tags || []),
-            JSON.stringify(entry.metadata || {}),
-            entry.year || null,
-            entry.fileName || null,
-            entry.outputPath || null,
-            entry.storedAt || new Date().toISOString(),
-            entry.bytes || null,
-          )
-        }
-      })
-
-      transaction(legacyEntries)
-      await fs.rename(legacyFilePath, `${legacyFilePath}.bak`).catch(() => undefined)
-    }
-  } catch {
-    // no legacy data to migrate
-  }
+  await metadataStore.initialize()
 }
 
 function loadMetadataDb() {
-  const rows = metadataDb.prepare('SELECT * FROM metadata_entries ORDER BY createdAt DESC').all()
-  return rows.map((row) => ({
-    ...row,
-    tags: JSON.parse(row.tags || '[]'),
-    metadata: JSON.parse(row.metadata || '{}'),
-  }))
+  return metadataStore.load()
 }
 //  save a single metadata entry to the database
-function saveMetadataEntry(record) {
-  const insert = metadataDb.prepare(`
-    INSERT OR REPLACE INTO metadata_entries (
-      id, name, type, createdAt, tags, metadata, year, fileName, outputPath, storedAt, bytes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `)
-
-  insert.run(
-    record.id,
-    record.name,
-    record.type,
-    record.createdAt,
-    JSON.stringify(record.tags || []),
-    JSON.stringify(record.metadata || {}),
-    record.year || null,
-    record.fileName || null,
-    record.outputPath || null,
-    record.storedAt || new Date().toISOString(),
-    record.bytes || null,
-  )
+async function saveMetadataEntry(record) {
+  return metadataStore.saveEntry(record)
 }
 //  persist the document metadata to the database
 async function persistDocumentMetadata(document, fileInfo) {
@@ -203,7 +128,7 @@ async function persistDocumentMetadata(document, fileInfo) {
     bytes: fileInfo?.bytes,
   }
 
-  saveMetadataEntry(record)
+  await saveMetadataEntry(record)
   return record
 }
 //  store the document to the filesystem and return file information
@@ -233,17 +158,15 @@ async function storeDocument(document, index) {
 }
 
 function getMetadataEntryById(id) {
-  const row = metadataDb.prepare('SELECT * FROM metadata_entries WHERE id = ?').get(id)
+  return metadataStore?.getEntryById(id) ?? null
+}
 
-  if (!row) {
-    return null
-  }
+async function updateMetadataEntry(id, patch = {}) {
+  return metadataStore?.updateEntry(id, patch) ?? null
+}
 
-  return {
-    ...row,
-    tags: JSON.parse(row.tags || '[]'),
-    metadata: JSON.parse(row.metadata || '{}'),
-  }
+async function deleteMetadataEntry(id) {
+  return metadataStore?.deleteEntry(id) ?? false
 }
 
 function resolveDocumentFilePath(entry) {
@@ -262,20 +185,53 @@ function resolveDocumentFilePath(entry) {
   return candidates.find((candidate) => candidate === baseDir || candidate.startsWith(baseDir + path.sep)) || null
 }
 
+async function closeMetadataDb() {
+  if (shuttingDown) {
+    return
+  }
 
+  shuttingDown = true
 
+  if (metadataStore) {
+    await metadataStore.close()
+  }
+}
+
+process.once('SIGINT', () => {
+  void closeMetadataDb().finally(() => process.exit(0))
+})
+
+process.once('SIGTERM', () => {
+  void closeMetadataDb().finally(() => process.exit(0))
+})
+
+process.once('beforeExit', () => {
+  void closeMetadataDb()
+})
 
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 
 await initializeMetadataDb()
 
+app.patch('/api/documents/:id', async (req, res) => {
+  const patch = req.body?.patch ?? req.body
+  const updatedEntry = await updateMetadataEntry(req.params.id, patch)
+
+  if (!updatedEntry) {
+    return res.status(404).json({ ok: false, message: 'Document not found' })
+  }
+
+  res.json({ ok: true, metadata: updatedEntry })
+})
+
 app.post('/api/documents', async (req, res) => {
   const { documents = [] } = req.body || {}
 
   console.log('Received documents:', documents.length)
   documents.forEach((document, index) => {
-    console.log(`[${index + 1}] ${document.name} | tags: ${document.tags.join(', ') || '-'} | metadata:`, document.metadata || {})
+    const tags = Array.isArray(document?.tags) ? document.tags.join(', ') : '-'
+    console.log(`[${index + 1}] ${document?.name || 'unnamed'} | tags: ${tags} | metadata:`, document?.metadata || {})
   })
 
   const saved = []
@@ -317,8 +273,8 @@ app.post('/api/documents', async (req, res) => {
   })
 })
 
-app.get('/api/metadata', (_req, res) => {
-  const metadata = loadMetadataDb()
+app.get('/api/metadata', async (_req, res) => {
+  const metadata = await loadMetadataDb()
   res.json({ ok: true, count: metadata.length, metadata })
 })
 
@@ -333,12 +289,14 @@ app.get('/api/metadata/:id', (req, res) => {
   res.json({ ok: true, metadata: entry })
 })
 
+
+
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'docscanner-api' })
 })
 
 app.get('/api/documents/:id', async (req, res) => {
-  const entry = getMetadataEntryById(req.params.id)
+  const entry = await getMetadataEntryById(req.params.id)
 
   if (!entry) {
     return res.status(404).json({ ok: false, message: 'Document not found' })
@@ -356,6 +314,35 @@ app.get('/api/documents/:id', async (req, res) => {
   } catch {
     return res.status(404).json({ ok: false, message: 'Document file not found' })
   }
+})
+
+app.delete('/api/documents/:id', async (req, res) => {
+  const entry = await getMetadataEntryById(req.params.id)
+
+  if (!entry) {
+    return res.status(404).json({ ok: false, message: 'Document not found' })
+  }
+
+  const filePath = resolveDocumentFilePath(entry)
+
+  if (filePath) {
+    try {
+      await fs.unlink(filePath)
+    } catch (error) {
+      const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : null
+      if (errorCode !== 'ENOENT') {
+        return res.status(500).json({ ok: false, message: 'Could not delete document file' })
+      }
+    }
+  }
+
+  const deleted = await deleteMetadataEntry(req.params.id)
+
+  if (!deleted) {
+    return res.status(404).json({ ok: false, message: 'Document not found' })
+  }
+
+  return res.json({ ok: true, id: req.params.id })
 })
 
 app.listen(port, () => {

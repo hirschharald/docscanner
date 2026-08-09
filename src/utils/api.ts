@@ -43,6 +43,21 @@ function parseMetadataTags(tags: string[]): Record<string, string> {
   }, {})
 }
 
+export async function loadDocumentsFromBackend(
+  baseUrl?: string,
+): Promise<BackendMetadataEntry[]> {
+
+  try {
+    const documents = await fetchMetadataFromBackend(baseUrl);
+    if (documents.length > 0) {
+      return documents;
+    }
+  } catch (error) {
+    console.error("Error fetching metadata from backend:", error);
+  }
+  return [];
+}
+
 export async function fetchMetadataFromBackend(baseUrl?: string): Promise<BackendMetadataEntry[]> {
   const endpoint = baseUrl ?? `${import.meta.env.VITE_API_URL ?? '/api'}/metadata`
   const response = await fetch(endpoint)
@@ -60,7 +75,7 @@ export async function uploadDocumentsToBackend(
   baseUrl?: string
 ): Promise<UploadDocumentsResult> {
 
-  const endpoint = baseUrl ?? `${import.meta.env.VITE_API_URL ?? '/api'}/metadata`
+  const endpoint = baseUrl ?? `${import.meta.env.VITE_API_URL ?? '/api'}/documents`
 
   const payload = documents.map((document) => ({
     ...document,
@@ -85,4 +100,41 @@ export async function uploadDocumentsToBackend(
     count: payload.length,
     ...data,
   }
+}
+
+export async function updateDocumentInBackend(
+  id: string,
+  patch: Partial<Pick<BackendMetadataEntry, 'name' | 'tags' | 'metadata' | 'type' | 'createdAt' | 'year' | 'fileName' | 'outputPath' | 'storedAt' | 'bytes'>>,
+  baseUrl?: string,
+): Promise<{ ok: boolean; metadata?: BackendMetadataEntry }> {
+  const endpoint = baseUrl ?? `${import.meta.env.VITE_API_URL ?? '/api'}/documents`
+  const response = await fetch(`${endpoint}/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(patch),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Backend request failed with status ${response.status}`)
+  }
+
+  return response.json().catch(() => ({ ok: true }))
+}
+
+export async function deleteDocumentInBackend(
+  id: string,
+  baseUrl?: string,
+): Promise<{ ok: boolean }> {
+  const endpoint = baseUrl ?? `${import.meta.env.VITE_API_URL ?? '/api'}/documents`
+  const response = await fetch(`${endpoint}/${id}`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Backend request failed with status ${response.status}`)
+  }
+
+  return response.json().catch(() => ({ ok: true }))
 }

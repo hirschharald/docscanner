@@ -69,7 +69,6 @@ export const DocumentCard = React.memo<DocumentCardProps>(
     };
 
     const isPdf = document.dataUrl.startsWith('data:application/pdf') || document.name.toLowerCase().endsWith('.pdf')
-
     return (
       <div className="card doc-card shadow-sm h-100">
         {isPdf ? (

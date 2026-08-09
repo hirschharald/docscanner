@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Document } from "@/types";
 import {
+  deleteDocumentInBackend,
   fetchMetadataFromBackend,
+  updateDocumentInBackend,
   uploadDocumentsToBackend,
+  loadDocumentsFromBackend,
 } from "@/utils/api";
 import { loadDocuments, saveDocuments, generateId } from "@/utils/storage";
-import { loadDocumentsFromBackend } from "@/utils/storageBackend";
 
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -13,7 +15,7 @@ export function useDocuments() {
 
   useEffect(() => {
     let active = true;
- 
+
     void loadDocumentsFromBackend().then(async (backendMetadata) => {
       try {
         console.log("Fetched metadata from backend:", backendMetadata);
@@ -104,8 +106,12 @@ export function useDocuments() {
       };
 
       setDocuments((prev) => {
+        // const updated = [doc, ...prev];
+        console.log("Adding document:", prev);
         const updated = [doc, ...prev];
         void saveDocuments(updated);
+        void uploadDocumentsToBackend(updated).catch(() => undefined);
+
         return updated;
       });
 
@@ -129,6 +135,8 @@ export function useDocuments() {
       void saveDocuments(updated);
       return updated;
     });
+
+    void deleteDocumentInBackend(id).catch(() => undefined);
   }, []);
 
   const updateDocument = useCallback(
@@ -138,6 +146,8 @@ export function useDocuments() {
         void saveDocuments(updated);
         return updated;
       });
+
+      void updateDocumentInBackend(id, patch).catch(() => undefined);
     },
     [],
   );
