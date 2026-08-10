@@ -33,7 +33,6 @@ const PageLoader = () => (
 function App() {
   const { theme, toggleTheme } = useTheme();
   const {
-    documents,
     archivedDocuments,
     addDocument,
     removeDocument,
@@ -64,7 +63,6 @@ function App() {
               element={
                 <ErrorBoundary>
                   <HomePage
-                    documents={documents}
                     archivedDocuments={archivedDocuments}
                     onDelete={removeDocument}
                     onRename={handleUpdate}

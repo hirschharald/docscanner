@@ -5,7 +5,6 @@ import {
   fetchMetadataFromBackend,
   updateDocumentInBackend,
   uploadDocumentsToBackend,
-  loadDocumentsFromBackend,
 } from "@/utils/api";
 import { loadDocuments, saveDocuments, generateId } from "@/utils/storage";
 
@@ -13,82 +12,57 @@ export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [archivedDocuments, setArchivedDocuments] = useState<Document[]>([]);
 
-  useEffect(() => {
-    let active = true;
+  const refreshAll = useCallback(async () => {
+    // Load documents from local storage and backend metadata, then merge them
+    const localDocuments = await loadDocuments();
 
-    void loadDocumentsFromBackend().then(async (backendMetadata) => {
-      try {
-        console.log("Fetched metadata from backend:", backendMetadata);
-        const loaded = backendMetadata.map((entry) => ({
-          id: entry.id,
-          name: entry.name || "Dokument",
-          dataUrl: "",
-          type: entry.type || "image",
-          createdAt: entry.createdAt || Date.now(),
-          tags: entry.tags || [],
-          metadata: entry.metadata || {},
-        })) as Document[];
+    try {
+      const backendMetadata = await fetchMetadataFromBackend();
+    
+      // const metadataById = new Map(
+      //   backendMetadata.map((entry) => [entry.id, entry]),
+      // );
+      // Merge local documents with backend metadata
+      // const mergedDocuments = localDocuments.map((document) => {
+      //   const metadata = metadataById.get(document.id);
 
-        if (active) {
-          setArchivedDocuments(loaded as Document[]);
-          // void saveDocuments(loaded as Document[]);
-        }
-      } catch {
-        if (active) {
-          setDocuments([]);
-        }
-      }
-    });
-    if (!active) return;
-    void loadDocuments().then(async (loaded) => {
-      if (!active) return;
+      //   if (!metadata) {
+      //     return document;
+      //   }
 
-      try {
-        const backendMetadata = await fetchMetadataFromBackend();
-        console.log("Fetched metadata from backend:", backendMetadata);
-        const merged = loaded.map((document) => {
-          const metadataEntry = backendMetadata.find(
-            (entry) => entry.id === document.id,
-          );
+      //   return {
+      //     ...document,
+      //     tags: Array.from(
+      //       new Set([...(document.tags ?? []), ...(metadata.tags ?? [])]),
+      //     ),
+      //     name: document.name || metadata.name || "Dokument",
+      //     createdAt: document.createdAt || metadata.createdAt || Date.now(),
+      //     metadata: metadata.metadata ?? {},
+      //   } as Document;
+      // });
+      const archived = backendMetadata.map((entry) => ({
+        id: entry.id,
+        name: entry.name || "Dokument",
+        dataUrl: "",
+        type: entry.type || "image",
+        createdAt: entry.createdAt || Date.now(),
+        tags: entry.tags || [],
+        metadata: entry.metadata || {},
+      })) as Document[];
 
-          if (!metadataEntry) {
-            return document;
-          }
-
-          const mergedTags = Array.from(
-            new Set([...(document.tags || []), ...(metadataEntry.tags || [])]),
-          );
-          const mergedMetadata = {
-            ...(document.tags ? {} : {}),
-            ...(metadataEntry.metadata || {}),
-          };
-
-          return {
-            ...document,
-            tags: mergedTags,
-            name: document.name || metadataEntry.name || "Dokument",
-            createdAt:
-              document.createdAt || metadataEntry.createdAt || Date.now(),
-            metadata: mergedMetadata,
-          } as Document & { metadata?: Record<string, string> };
-        });
-
-        if (active) {
-          setDocuments(merged as Document[]);
-          void saveDocuments(merged as Document[]);
-        }
-      } catch {
-        if (active) {
-          setDocuments(loaded);
-        }
-      }
-    });
-
-    return () => {
-      active = false;
-    };
+      // setDocuments(mergedDocuments);
+      setArchivedDocuments(archived);
+      // await saveDocuments(mergedDocuments);
+    } catch {
+      setDocuments(localDocuments);
+      setArchivedDocuments([]);
+    }
   }, []);
 
+  useEffect(() => {
+    void refreshAll();
+  }, [refreshAll]);
+  
   const addDocument = useCallback(
     (
       name: string,
@@ -106,38 +80,53 @@ export function useDocuments() {
       };
 
       setDocuments((prev) => {
-        // const updated = [doc, ...prev];
-        console.log("Adding document:", prev);
         const updated = [doc, ...prev];
         void saveDocuments(updated);
-        void uploadDocumentsToBackend(updated).catch(() => undefined);
+        void uploadDocumentsToBackend(updated)
+          .catch(() => undefined)
+          .finally(() => {
+            void refreshAll();
+          });
 
         return updated;
       });
 
       return doc;
     },
-    [],
+    [refreshAll],
   );
 
   const toArchive = useCallback(() => {
-    loadDocuments().then((docs) => {
-      void uploadDocumentsToBackend(docs).catch(() => undefined);
-      // remove all documents from local storage after uploading
-      setDocuments([]);
-      void saveDocuments([]);
-    });
-  }, []);
+    void (async () => {
+      try {
+        const docs = await loadDocuments();
+        await uploadDocumentsToBackend(docs);
+        setDocuments([]);
+        await saveDocuments([]);
+      } catch {
+        // Intentionally swallow backend errors to keep the UI responsive.
+      } finally {
+        await refreshAll();
+      }
+    })();
+  }, [refreshAll]);
 
-  const removeDocument = useCallback((id: string) => {
-    setDocuments((prev) => {
-      const updated = prev.filter((d) => d.id !== id);
-      void saveDocuments(updated);
-      return updated;
-    });
+  const removeDocument = useCallback(
+    (id: string) => {
+      setDocuments((prev) => {
+        const updated = prev.filter((d) => d.id !== id);
+        void saveDocuments(updated);
+        return updated;
+      });
 
-    void deleteDocumentInBackend(id).catch(() => undefined);
-  }, []);
+      void deleteDocumentInBackend(id)
+        .catch(() => undefined)
+        .finally(() => {
+          void refreshAll();
+        });
+    },
+    [refreshAll],
+  );
 
   const updateDocument = useCallback(
     (id: string, patch: Partial<Pick<Document, "name" | "tags">>) => {
@@ -147,9 +136,13 @@ export function useDocuments() {
         return updated;
       });
 
-      void updateDocumentInBackend(id, patch).catch(() => undefined);
+      void updateDocumentInBackend(id, patch)
+        .catch(() => undefined)
+        .finally(() => {
+          void refreshAll();
+        });
     },
-    [],
+    [refreshAll],
   );
 
   const cropDocument = useCallback((id: string, dataUrl: string) => {

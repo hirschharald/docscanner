@@ -4,7 +4,6 @@ import { DocumentCard } from "@/components/DocumentCard";
 import { DocumentModal } from "@/components/DocumentModal";
 
 interface HomePageProps {
-  documents: Document[];
   archivedDocuments: Document[];
   onDelete: (id: string) => void;
   onRename: (id: string, name: string, tags: string[]) => void;
@@ -12,7 +11,7 @@ interface HomePageProps {
 }
 // load documents from backend metadata
 export const HomePage = React.memo<HomePageProps>(
-  ({ documents, archivedDocuments, onDelete, onRename, onCrop }) => {
+  ({ archivedDocuments, onDelete, onRename, onCrop }) => {
     const [query, setQuery] = useState("");
     const [selectedYear, setSelectedYear] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("");
@@ -42,7 +41,7 @@ export const HomePage = React.memo<HomePageProps>(
             ),
           ),
         ).sort(),
-      [documents],
+      [archivedDocuments],
     );
 
     const filtered = useMemo(() => {

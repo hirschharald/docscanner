@@ -177,7 +177,7 @@ function resolveDocumentFilePath(entry) {
     candidates.push(path.resolve(entry.outputPath))
   }
 
-  if (entry?.fileName) {
+  else if (entry?.fileName) {
     const year = entry?.year || extractYear(entry)
     candidates.push(path.resolve(baseDir, year, entry.fileName))
   }
@@ -217,6 +217,23 @@ await initializeMetadataDb()
 app.patch('/api/documents/:id', async (req, res) => {
   const patch = req.body?.patch ?? req.body
   const updatedEntry = await updateMetadataEntry(req.params.id, patch)
+
+  // wenn sich das jahr oder der dateiname geändert hat, verschiebe die datei
+  if (updatedEntry) {
+    const oldEntry = await getMetadataEntryById(req.params.id)
+    const oldFilePath = resolveDocumentFilePath(oldEntry)
+    const newFilePath = resolveDocumentFilePath(updatedEntry)
+
+    if (oldFilePath && newFilePath && oldFilePath !== newFilePath) {
+      try {
+        await fs.mkdir(path.dirname(newFilePath), { recursive: true })
+        await fs.rename(oldFilePath, newFilePath)
+      } catch (error) {
+        console.error('Error moving file:', error)
+        return res.status(500).json({ ok: false, message: 'Could not move document file' })
+      }
+    }
+  } 
 
   if (!updatedEntry) {
     return res.status(404).json({ ok: false, message: 'Document not found' })

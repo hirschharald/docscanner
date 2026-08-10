@@ -20,47 +20,52 @@ export const DocumentCard = React.memo<DocumentCardProps>(
     const tagObject = document.tags.reduce<Record<string, string>>(
       (acc, tag) => {
         const separatorIndex = tag.indexOf(":");
-
+        
         if (separatorIndex > 0) {
           const key = tag.slice(0, separatorIndex).trim();
           const value = tag.slice(separatorIndex + 1).trim();
-
+          
           if (key && value) {
             acc[key] = value;
           }
         }
-
+        
         return acc;
       },
       {},
     );
-
+    
     const [editing, setEditing] = useState(false);
     const [editName, setEditName] = useState(document.name);
     const [selectedYear, setSelectedYear] = useState(tagObject.Jahr ?? "");
     const [selectedCategory, setSelectedCategory] = useState(tagObject.Kategorie ?? "");
-
+    
     const handleRename = () => {
       const normalizedName = editName.trim();
-
+      
       if (normalizedName) {
         const nextTags = document.tags.filter(
           (tag) => !tag.startsWith("Jahr:") && !tag.startsWith("Kategorie:"),
         );
-
+        
         if (selectedYear.trim()) {
           nextTags.push(`Jahr:${selectedYear.trim()}`);
         }
         if (selectedCategory.trim()) {
           nextTags.push(`Kategorie:${selectedCategory.trim()}`);
         }
-
+        
         onRename(document.id, normalizedName, nextTags);
       }
-
+      
       setEditing(false);
     };
+    
+    // abfrage ob document gelöscht werden soll, wenn ja dann löschen, wenn nein dann nichts tun
 
+
+
+    
     const handleCancel = () => {
       setEditing(false);
       setEditName(document.name);
