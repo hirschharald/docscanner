@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import type { Document } from "@/types";
 import { DocumentCard } from "@/components/DocumentCard";
 import { DocumentModal } from "@/components/DocumentModal";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface HomePageProps {
   archivedDocuments: Document[];
@@ -79,7 +80,7 @@ export const HomePage = React.memo<HomePageProps>(
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
             >
-              <option value="">Jahr filtern</option> 
+              <option value="">Jahr filtern</option>
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -142,7 +143,12 @@ export const HomePage = React.memo<HomePageProps>(
               <div key={doc.id} className="col">
                 <DocumentCard
                   document={doc}
-                  onDelete={onDelete}
+                  // onDelete={onDelete}
+                  onDelete={(id) => {
+                    // onDelete(id);
+                    setSelectedDoc(doc)
+                 
+                  }}
                   onRename={onRename}
                   onView={setSelectedDoc}
                 />
@@ -157,6 +163,18 @@ export const HomePage = React.memo<HomePageProps>(
           onCropSave={(id, dataUrl) => {
             onCrop(id, dataUrl);
             setSelectedDoc((prev) => (prev ? { ...prev, dataUrl } : null));
+          }}
+        />
+
+        <ConfirmModal
+          open={!!selectedDoc}
+          title="Dokument löschen?"
+          message={`Möchten Sie das Dokument "${selectedDoc?.name}" wirklich löschen?`}
+          onResult={(result) => {
+            if (result && selectedDoc) {
+              onDelete(selectedDoc.id);
+            }
+            setSelectedDoc(null);
           }}
         />
       </div>
