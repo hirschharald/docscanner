@@ -51,6 +51,7 @@ export function useDocuments() {
         createdAt: entry.createdAt || Date.now(),
         tags: entry.tags || [],
         metadata: entry.metadata || {},
+        isArchived: entry.isArchived ?? false,
       })) as Document[];
 
       // setDocuments(mergedDocuments);

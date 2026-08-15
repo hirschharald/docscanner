@@ -4,7 +4,14 @@ export interface Document {
   type: 'scan' | 'upload'
   createdAt: number
   tags: string[]
-  dataUrl: string
+  dataUrl?: string
+  isArchived?: boolean
+  metadata?: Record<string, string>
+  year?: string
+  fileName?: string
+  outputPath?: string
+  storedAt?: string
+  bytes?: number
 }
 
 export type Theme = 'light' | 'dark'
@@ -25,16 +32,16 @@ export interface UploadDocumentsResult {
   message?: string
 }
 
-export interface BackendMetadataEntry {
-  id: string
-  name: string
-  type: string
-  createdAt: number
-  tags: string[]
-  metadata: Record<string, string>
-  year?: string
-  fileName?: string
-  outputPath?: string
-  storedAt?: string
-  bytes?: number
-}
+// export interface BackendMetadataEntry {
+//   id: string
+//   name: string
+//   type: string
+//   createdAt: number
+//   tags: string[]
+//   metadata: Record<string, string>
+//   year?: string
+//   fileName?: string
+//   outputPath?: string
+//   storedAt?: string
+//   bytes?: number
+// }

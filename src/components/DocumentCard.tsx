@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { Document } from "@/types";
 import { formatDate } from "@/utils/storage";
 
@@ -39,11 +39,20 @@ export const DocumentCard = React.memo<DocumentCardProps>(
     );
 
     const [editing, setEditing] = useState(false);
+    const [imgPath, setImgPath] = useState(document.dataUrl ?? "");
     const [editName, setEditName] = useState(document.name);
     const [selectedYear, setSelectedYear] = useState(tagObject.Jahr ?? "");
     const [selectedCategory, setSelectedCategory] = useState(
       tagObject.Kategorie ?? "",
     );
+
+    useEffect(() => {
+      if (document.isArchived) {
+        setImgPath(API_DOC_URL + "/" + document.id);
+      } else {
+        setImgPath(document.dataUrl ?? "");
+      }
+    }, [document]);
 
     const handleRename = () => {
       const normalizedName = editName.trim();
@@ -74,13 +83,14 @@ export const DocumentCard = React.memo<DocumentCardProps>(
     };
 
     const isPdf =
-      document.dataUrl.startsWith("data:application/pdf") ||
+      document.dataUrl?.startsWith("data:application/pdf") ||
       document.name.toLowerCase().endsWith(".pdf");
     return (
       <div className="card doc-card shadow-sm h-100">
         {isPdf ? (
           <iframe
-            src={API_DOC_URL + "/" + document.id}
+            // src={API_DOC_URL + "/" + document.id}
+            src={imgPath}
             title={document.name}
             className="doc-preview-img"
             onClick={() => onView(document)}
@@ -88,7 +98,7 @@ export const DocumentCard = React.memo<DocumentCardProps>(
           />
         ) : (
           <img
-            src={API_DOC_URL + "/" + document.id}
+            src={imgPath}
             alt={document.name}
             className="doc-preview-img"
             onClick={() => onView(document)}
@@ -164,18 +174,15 @@ export const DocumentCard = React.memo<DocumentCardProps>(
               </span>
             ))}
           </div> */}
-          
-
-          
         </div>
-            <div className="d-flex gap-1 mt-auto">
-              <button
-                className="btn btn-outline-primary btn-sm flex-fill"
-                onClick={() => onView(document)}
-              >
-                👁 
-              </button>
-              {/* <button
+        <div className="d-flex gap-1 mt-auto">
+          <button
+            className="btn btn-outline-primary btn-sm flex-fill"
+            onClick={() => onView(document)}
+          >
+            👁
+          </button>
+          {/* <button
                 className="btn btn-outline-secondary btn-sm"
                 onClick={() => {
                   setEditing(true);
@@ -184,14 +191,14 @@ export const DocumentCard = React.memo<DocumentCardProps>(
               >
                 ✏️
               </button> */}
-              <button
-                className="btn btn-outline-danger btn-sm"
-                onClick={() => onDelete(document.id)}
-                title="Löschen"
-              >
-                🗑
-              </button>
-            </div>
+          <button
+            className="btn btn-outline-danger btn-sm"
+            onClick={() => onDelete(document.id)}
+            title="Löschen"
+          >
+            🗑
+          </button>
+        </div>
       </div>
     );
   },

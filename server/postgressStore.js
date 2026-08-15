@@ -246,6 +246,7 @@ export function createMetadataStore({
         storedAt:
           patch.storedAt ?? currentEntry.storedAt ?? new Date().toISOString(),
         bytes: patch.bytes ?? currentEntry.bytes,
+        isArchived: patch.isArchived ?? currentEntry.isArchived ?? false,
       });
 
       await this.saveEntry(nextEntry);

@@ -86,7 +86,6 @@ function App() {
       <Navbar
         theme={theme}
         onToggleTheme={toggleTheme}
-        
         backendAvailable={health.backend}
         dbAvailable={health.db}
         statusLoading={health.loading}
