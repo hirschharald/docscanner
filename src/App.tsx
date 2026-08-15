@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -8,6 +8,7 @@ import { useTheme } from "@/hooks/useTheme";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "@/styles/app.css";
+import { fetchSystemHealth } from "@/utils/api";
 
 const HomePage = lazy(() =>
   import("@/pages/HomePage").then((m) => ({ default: m.HomePage })),
@@ -33,6 +34,7 @@ const PageLoader = () => (
 function App() {
   const { theme, toggleTheme } = useTheme();
   const {
+    localDocuments,
     archivedDocuments,
     addDocument,
     removeDocument,
@@ -40,6 +42,37 @@ function App() {
     cropDocument,
     toArchive,
   } = useDocuments();
+
+  // in App():
+  const [health, setHealth] = useState({
+    backend: false,
+    db: false,
+    loading: true,
+  });
+
+  useEffect(() => {
+    let active = true;
+
+    const runCheck = async () => {
+      const next = await fetchSystemHealth();
+      if (!active) return;
+      setHealth({
+        backend: next.backend,
+        db: next.db,
+        loading: false,
+      });
+    };
+
+    void runCheck();
+    const timer = setInterval(() => {
+      void runCheck();
+    }, 10000);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   const handleUpdate = useCallback(
     (id: string, name: string, tags: string[]) => {
@@ -53,7 +86,10 @@ function App() {
       <Navbar
         theme={theme}
         onToggleTheme={toggleTheme}
-        onToArchive={toArchive}
+        
+        backendAvailable={health.backend}
+        dbAvailable={health.db}
+        statusLoading={health.loading}
       />
       <main>
         <Suspense fallback={<PageLoader />}>
@@ -75,7 +111,11 @@ function App() {
               path="/scan"
               element={
                 <ErrorBoundary>
-                  <ScanPage onAdd={addDocument} />
+                  <ScanPage
+                    localDocuments={localDocuments}
+                    onAdd={addDocument}
+                    onDelete={removeDocument}
+                  />
                 </ErrorBoundary>
               }
             />

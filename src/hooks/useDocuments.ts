@@ -18,32 +18,35 @@ export function useDocuments() {
 
     try {
       const backendMetadata = await fetchMetadataFromBackend();
-    
-      // const metadataById = new Map(
-      //   backendMetadata.map((entry) => [entry.id, entry]),
-      // );
-      // Merge local documents with backend metadata
-      // const mergedDocuments = localDocuments.map((document) => {
-      //   const metadata = metadataById.get(document.id);
 
-      //   if (!metadata) {
-      //     return document;
-      //   }
+      const metadataById = new Map(
+        backendMetadata.map((entry) => [entry.id, entry]),
+      );
 
-      //   return {
-      //     ...document,
-      //     tags: Array.from(
-      //       new Set([...(document.tags ?? []), ...(metadata.tags ?? [])]),
-      //     ),
-      //     name: document.name || metadata.name || "Dokument",
-      //     createdAt: document.createdAt || metadata.createdAt || Date.now(),
-      //     metadata: metadata.metadata ?? {},
-      //   } as Document;
-      // });
+      /////////////////////////   Merge local documents with backend metadata
+      const mergedDocuments = localDocuments.map((document) => {
+        const metadata = metadataById.get(document.id);
+
+        if (!metadata) {
+          return document;
+        }
+
+        return {
+          ...document,
+          tags: Array.from(
+            new Set([...(document.tags ?? []), ...(metadata.tags ?? [])]),
+          ),
+          name: document.name || metadata.name || "Dokument",
+          createdAt: document.createdAt || metadata.createdAt || Date.now(),
+          metadata: metadata.metadata ?? {},
+        } as Document;
+      });
+      setDocuments(mergedDocuments);
+      //////////////////////////////////////////////////////////////////
       const archived = backendMetadata.map((entry) => ({
         id: entry.id,
         name: entry.name || "Dokument",
-        dataUrl: "",
+        dataUrl: entry.fileName || "",
         type: entry.type || "image",
         createdAt: entry.createdAt || Date.now(),
         tags: entry.tags || [],
@@ -62,7 +65,7 @@ export function useDocuments() {
   useEffect(() => {
     void refreshAll();
   }, [refreshAll]);
-  
+
   const addDocument = useCallback(
     (
       name: string,
@@ -81,12 +84,13 @@ export function useDocuments() {
 
       setDocuments((prev) => {
         const updated = [doc, ...prev];
+        // save documents to local storage
         void saveDocuments(updated);
-        void uploadDocumentsToBackend(updated)
-          .catch(() => undefined)
-          .finally(() => {
-            void refreshAll();
-          });
+        // void uploadDocumentsToBackend(updated)
+        //   .catch(() => undefined)
+        //   .finally(() => {
+        //     void refreshAll();
+        //   });
 
         return updated;
       });
@@ -96,20 +100,28 @@ export function useDocuments() {
     [refreshAll],
   );
 
-  const toArchive = useCallback(() => {
-    void (async () => {
-      try {
-        const docs = await loadDocuments();
-        await uploadDocumentsToBackend(docs);
-        setDocuments([]);
-        await saveDocuments([]);
-      } catch {
-        // Intentionally swallow backend errors to keep the UI responsive.
-      } finally {
-        await refreshAll();
-      }
-    })();
-  }, [refreshAll]);
+  const addDocToArchive = useCallback(
+    (
+      name: string,
+      dataUrl: string,
+      type: Document["type"],
+      tags: string[] = [],
+    ) => {
+      void (async () => {
+        try {
+          const docs = await loadDocuments();
+          await uploadDocumentsToBackend(docs);
+          setDocuments([]);
+          await saveDocuments([]);
+        } catch {
+          // Intentionally swallow backend errors to keep the UI responsive.
+        } finally {
+          await refreshAll();
+        }
+      })();
+    },
+    [refreshAll],
+  );
 
   const removeDocument = useCallback(
     (id: string) => {
@@ -154,12 +166,12 @@ export function useDocuments() {
   }, []);
 
   return {
-    documents,
+    localDocuments: documents,
     archivedDocuments,
     addDocument,
     removeDocument,
     updateDocument,
     cropDocument,
-    toArchive,
+    toArchive: addDocToArchive,
   };
 }

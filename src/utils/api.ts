@@ -26,6 +26,44 @@ export interface BackendMetadataEntry {
   bytes?: number
 }
 
+export interface SystemHealth {
+  ok: boolean
+  backend: boolean
+  db: boolean
+}
+
+export interface SystemHealth {
+  ok: boolean
+  backend: boolean
+  db: boolean
+}
+
+export async function fetchSystemHealth(baseUrl?: string): Promise<SystemHealth> {
+  const endpoint = baseUrl ?? `${import.meta.env.VITE_API_URL ?? '/api'}/health`
+
+  try {
+    const response = await fetch(endpoint, { cache: 'no-store' })
+
+    if (!response.ok) {
+      return { ok: false, backend: false, db: false }
+    }
+
+    const data = await response.json().catch(() => null)
+
+    return {
+      ok: Boolean(data?.ok),
+      backend: Boolean(data?.backend),
+      db: Boolean(data?.db),
+    }
+  } catch {
+    return { ok: false, backend: false, db: false }
+  }
+}
+
+
+
+
+
 function parseMetadataTags(tags: string[]): Record<string, string> {
   return tags.reduce<Record<string, string>>((metadata, tag) => {
     const separatorIndex = tag.indexOf(':')

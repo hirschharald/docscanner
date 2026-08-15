@@ -2,17 +2,20 @@ import React, { useState } from "react";
 import type { Document } from "@/types";
 import { formatDate } from "@/utils/storage";
 
-const API_DOC_URL = `${import.meta.env.VITE_API_URL ?? '/api'}/documents`
+const API_DOC_URL = `${import.meta.env.VITE_API_URL ?? "/api"}/documents`;
 
-const yearOptions = Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - index)
-const categoryOptions = ['Haus', 'Steuer', 'Bank', 'Privat', 'Sonstiges']
-
+const yearOptions = Array.from(
+  { length: 11 },
+  (_, index) => new Date().getFullYear() - index,
+);
+const categoryOptions = ["Haus", "Steuer", "Bank", "Privat", "Sonstiges"];
 
 interface DocumentCardProps {
   document: Document;
   onDelete: (id: string) => void;
   onRename: (id: string, name: string, tags: string[]) => void;
   onView: (document: Document) => void;
+  // noMetadata: boolean;
 }
 
 export const DocumentCard = React.memo<DocumentCardProps>(
@@ -20,52 +23,49 @@ export const DocumentCard = React.memo<DocumentCardProps>(
     const tagObject = document.tags.reduce<Record<string, string>>(
       (acc, tag) => {
         const separatorIndex = tag.indexOf(":");
-        
+
         if (separatorIndex > 0) {
           const key = tag.slice(0, separatorIndex).trim();
           const value = tag.slice(separatorIndex + 1).trim();
-          
+
           if (key && value) {
             acc[key] = value;
           }
         }
-        
+
         return acc;
       },
       {},
     );
-    
+
     const [editing, setEditing] = useState(false);
     const [editName, setEditName] = useState(document.name);
     const [selectedYear, setSelectedYear] = useState(tagObject.Jahr ?? "");
-    const [selectedCategory, setSelectedCategory] = useState(tagObject.Kategorie ?? "");
-    
+    const [selectedCategory, setSelectedCategory] = useState(
+      tagObject.Kategorie ?? "",
+    );
+
     const handleRename = () => {
       const normalizedName = editName.trim();
-      
+
       if (normalizedName) {
         const nextTags = document.tags.filter(
           (tag) => !tag.startsWith("Jahr:") && !tag.startsWith("Kategorie:"),
         );
-        
+
         if (selectedYear.trim()) {
           nextTags.push(`Jahr:${selectedYear.trim()}`);
         }
         if (selectedCategory.trim()) {
           nextTags.push(`Kategorie:${selectedCategory.trim()}`);
         }
-        
+
         onRename(document.id, normalizedName, nextTags);
       }
-      
+
       setEditing(false);
     };
-    
-    // abfrage ob document gelöscht werden soll, wenn ja dann löschen, wenn nein dann nichts tun
 
-
-
-    
     const handleCancel = () => {
       setEditing(false);
       setEditName(document.name);
@@ -73,20 +73,22 @@ export const DocumentCard = React.memo<DocumentCardProps>(
       setSelectedCategory(tagObject.Kategorie ?? "");
     };
 
-    const isPdf = document.dataUrl.startsWith('data:application/pdf') || document.name.toLowerCase().endsWith('.pdf')
+    const isPdf =
+      document.dataUrl.startsWith("data:application/pdf") ||
+      document.name.toLowerCase().endsWith(".pdf");
     return (
       <div className="card doc-card shadow-sm h-100">
         {isPdf ? (
           <iframe
-            src={API_DOC_URL + '/' + document.id}
+            src={API_DOC_URL + "/" + document.id}
             title={document.name}
             className="doc-preview-img"
             onClick={() => onView(document)}
-            style={{ border: 'none', background: '#fff' }}
+            style={{ border: "none", background: "#fff" }}
           />
         ) : (
           <img
-            src={API_DOC_URL + '/' + document.id}
+            src={API_DOC_URL + "/" + document.id}
             alt={document.name}
             className="doc-preview-img"
             onClick={() => onView(document)}
@@ -105,29 +107,33 @@ export const DocumentCard = React.memo<DocumentCardProps>(
                 autoFocus
                 placeholder="Name"
               />
-            <label className="form-label fw-semibold">Jahr:</label>
-            <select
-              className="form-select"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-            >
-              <option value="">Bitte wählen</option>
-              {yearOptions.map((year) => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+              <label className="form-label fw-semibold">Jahr:</label>
+              <select
+                className="form-select"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+              >
+                <option value="">Bitte wählen</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
 
               <label className="form-label fw-semibold">Kategorie:</label>
-            <select
-              className="form-select"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="">Bitte wählen</option>
-              {categoryOptions.map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+              <select
+                className="form-select"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">Bitte wählen</option>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
               <div className="d-flex gap-1">
                 <button
                   className="btn btn-success btn-sm"
@@ -148,39 +154,44 @@ export const DocumentCard = React.memo<DocumentCardProps>(
               {document.name}
             </h6>
           )}
+
           <small className="text-muted">{formatDate(document.createdAt)}</small>
-          <div className="d-flex flex-wrap gap-1 mb-1">
+
+          {/* <div className="d-flex flex-wrap gap-1 mb-1">
             {document.tags.map((tag) => (
               <span key={tag} className="badge bg-secondary tag-badge">
                 {tag}
               </span>
             ))}
-          </div>
-          <div className="d-flex gap-1 mt-auto">
-            <button
-              className="btn btn-outline-primary btn-sm flex-fill"
-              onClick={() => onView(document)}
-            >
-              👁 Ansehen
-            </button>
-            <button
-              className="btn btn-outline-secondary btn-sm"
-              onClick={() => {
-                setEditing(true);
-              }}
-              title="Umbenennen"
-            >
-              ✏️
-            </button>
-            <button
-              className="btn btn-outline-danger btn-sm"
-              onClick={() => onDelete(document.id)}
-              title="Löschen"
-            >
-              🗑
-            </button>
-          </div>
+          </div> */}
+          
+
+          
         </div>
+            <div className="d-flex gap-1 mt-auto">
+              <button
+                className="btn btn-outline-primary btn-sm flex-fill"
+                onClick={() => onView(document)}
+              >
+                👁 
+              </button>
+              {/* <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => {
+                  setEditing(true);
+                }}
+                title="Umbenennen"
+              >
+                ✏️
+              </button> */}
+              <button
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => onDelete(document.id)}
+                title="Löschen"
+              >
+                🗑
+              </button>
+            </div>
       </div>
     );
   },

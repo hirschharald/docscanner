@@ -1,62 +1,69 @@
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import pg from 'pg'
+import fs from "node:fs/promises";
+import path from "node:path";
+import pg from "pg";
 
-const { Pool } = pg
+const { Pool } = pg;
 
 function normalizeEntry(entry = {}) {
   return {
     ...entry,
     tags: Array.isArray(entry?.tags) ? entry.tags : [],
-    metadata: entry?.metadata && typeof entry.metadata === 'object' ? entry.metadata : {},
-  }
+    metadata:
+      entry?.metadata && typeof entry.metadata === "object"
+        ? entry.metadata
+        : {},
+  };
 }
 
 function parseJson(value, fallback) {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return fallback
+  if (typeof value !== "string" || value.trim() === "") {
+    return fallback;
   }
 
   try {
-    return JSON.parse(value)
+    return JSON.parse(value);
   } catch {
-    return fallback
+    return fallback;
   }
 }
 
 function buildPoolConfig(connectionString) {
   if (connectionString) {
-    return { connectionString }
+    return { connectionString };
   }
 
   return {
-    host: process.env.PGHOST || process.env.DB_HOST || 'localhost',
+    host: process.env.PGHOST || process.env.DB_HOST || "localhost",
     port: Number(process.env.PGPORT || process.env.DB_PORT || 5432),
-    user: process.env.PGUSER || process.env.DB_USER || 'docscanner',
-    password: process.env.PGPASSWORD || process.env.DB_PASSWORD || 'docscanner',
-    database: process.env.PGDATABASE || process.env.DB_NAME || 'docscanner',
-  }
+    user: process.env.PGUSER || process.env.DB_USER || "docscanner",
+    password: process.env.PGPASSWORD || process.env.DB_PASSWORD || "docscanner",
+    database: process.env.PGDATABASE || process.env.DB_NAME || "docscanner",
+  };
 }
 
-export function createMetadataStore({ connectionString, documentsBaseDir, tableName = 'metadata_entries' }) {
-  const pool = new Pool(buildPoolConfig(connectionString))
+export function createMetadataStore({
+  connectionString,
+  documentsBaseDir,
+  tableName = "metadata_entries",
+}) {
+  const pool = new Pool(buildPoolConfig(connectionString));
   const legacyFilePath = documentsBaseDir
-    ? path.resolve(process.cwd(), path.join(documentsBaseDir, 'metadata.json'))
-    : path.resolve(process.cwd(), 'metadata.json')
+    ? path.resolve(process.cwd(), path.join(documentsBaseDir, "metadata.json"))
+    : path.resolve(process.cwd(), "metadata.json");
 
   async function waitForDatabase(retries = 15, delayMs = 1500) {
     for (let attempt = 1; attempt <= retries; attempt += 1) {
       try {
-        await pool.query('SELECT 1')
-        return
+        await pool.query("SELECT 1");
+        return;
       } catch (error) {
         if (attempt === retries) {
-          throw error
+          throw error;
         }
 
         await new Promise((resolve) => {
-          setTimeout(resolve, delayMs)
-        })
+          setTimeout(resolve, delayMs);
+        });
       }
     }
   }
@@ -76,24 +83,25 @@ export function createMetadataStore({ connectionString, documentsBaseDir, tableN
         "storedAt" TEXT NOT NULL,
         bytes BIGINT
       )
-    `)
+    `);
   }
 
   async function migrateLegacyEntries() {
     try {
-      const legacyRaw = await fs.readFile(legacyFilePath, 'utf8')
-      const legacyEntries = parseJson(legacyRaw, [])
+      const legacyRaw = await fs.readFile(legacyFilePath, "utf8");
+      const legacyEntries = parseJson(legacyRaw, []);
 
       if (!Array.isArray(legacyEntries) || legacyEntries.length === 0) {
-        return
+        return;
       }
 
       for (const entry of legacyEntries) {
         if (!entry?.id) {
-          continue
+          continue;
         }
 
-        await pool.query(`
+        await pool.query(
+          `
           INSERT INTO ${tableName} (
             id, name, type, "createdAt", tags, metadata, year, "fileName", "outputPath", "storedAt", bytes
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -108,22 +116,26 @@ export function createMetadataStore({ connectionString, documentsBaseDir, tableN
             "outputPath" = EXCLUDED."outputPath",
             "storedAt" = EXCLUDED."storedAt",
             bytes = EXCLUDED.bytes
-        `, [
-          entry.id,
-          entry.name || 'document',
-          entry.type || 'upload',
-          entry.createdAt || Date.now(),
-          JSON.stringify(entry.tags || []),
-          JSON.stringify(entry.metadata || {}),
-          entry.year || null,
-          entry.fileName || null,
-          entry.outputPath || null,
-          entry.storedAt || new Date().toISOString(),
-          entry.bytes || null,
-        ])
+        `,
+          [
+            entry.id,
+            entry.name || "document",
+            entry.type || "upload",
+            entry.createdAt || Date.now(),
+            JSON.stringify(entry.tags || []),
+            JSON.stringify(entry.metadata || {}),
+            entry.year || null,
+            entry.fileName || null,
+            entry.outputPath || null,
+            entry.storedAt || new Date().toISOString(),
+            entry.bytes || null,
+          ],
+        );
       }
 
-      await fs.rename(legacyFilePath, `${legacyFilePath}.bak`).catch(() => undefined)
+      await fs
+        .rename(legacyFilePath, `${legacyFilePath}.bak`)
+        .catch(() => undefined);
     } catch {
       // no legacy data to migrate
     }
@@ -131,25 +143,33 @@ export function createMetadataStore({ connectionString, documentsBaseDir, tableN
 
   return {
     async initialize() {
-      await waitForDatabase()
-      await ensureSchema()
-      await pool.query('SELECT 1')
-      await migrateLegacyEntries()
+      await waitForDatabase();
+      await ensureSchema();
+      await pool.query("SELECT 1");
+      await migrateLegacyEntries();
     },
 
     async load() {
-      const { rows } = await pool.query(`SELECT * FROM ${tableName} ORDER BY "createdAt" DESC`)
-      return rows.map((row) => normalizeEntry({
-        ...row,
-        tags: Array.isArray(row.tags) ? row.tags : [],
-        metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
-      }))
+      const { rows } = await pool.query(
+        `SELECT * FROM ${tableName} ORDER BY "createdAt" DESC`,
+      );
+      return rows.map((row) =>
+        normalizeEntry({
+          ...row,
+          tags: Array.isArray(row.tags) ? row.tags : [],
+          metadata:
+            row.metadata && typeof row.metadata === "object"
+              ? row.metadata
+              : {},
+        }),
+      );
     },
 
     async saveEntry(record) {
-      const nextEntry = normalizeEntry(record)
+      const nextEntry = normalizeEntry(record);
 
-      await pool.query(`
+      await pool.query(
+        `
         INSERT INTO ${tableName} (
           id, name, type, "createdAt", tags, metadata, year, "fileName", "outputPath", "storedAt", bytes
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -164,42 +184,50 @@ export function createMetadataStore({ connectionString, documentsBaseDir, tableN
           "outputPath" = EXCLUDED."outputPath",
           "storedAt" = EXCLUDED."storedAt",
           bytes = EXCLUDED.bytes
-      `, [
-        nextEntry.id,
-        nextEntry.name,
-        nextEntry.type,
-        nextEntry.createdAt,
-        JSON.stringify(nextEntry.tags || []),
-        JSON.stringify(nextEntry.metadata || {}),
-        nextEntry.year || null,
-        nextEntry.fileName || null,
-        nextEntry.outputPath || null,
-        nextEntry.storedAt || new Date().toISOString(),
-        nextEntry.bytes || null,
-      ])
+      `,
+        [
+          nextEntry.id,
+          nextEntry.name,
+          nextEntry.type,
+          nextEntry.createdAt,
+          JSON.stringify(nextEntry.tags || []),
+          JSON.stringify(nextEntry.metadata || {}),
+          nextEntry.year || null,
+          nextEntry.fileName || null,
+          nextEntry.outputPath || null,
+          nextEntry.storedAt || new Date().toISOString(),
+          nextEntry.bytes || null,
+        ],
+      );
 
-      return nextEntry
+      return nextEntry;
     },
 
     async getEntryById(id) {
-      const { rows } = await pool.query(`SELECT * FROM ${tableName} WHERE id = $1`, [id])
+      const { rows } = await pool.query(
+        `SELECT * FROM ${tableName} WHERE id = $1`,
+        [id],
+      );
 
       if (rows.length === 0) {
-        return null
+        return null;
       }
 
       return normalizeEntry({
         ...rows[0],
         tags: Array.isArray(rows[0].tags) ? rows[0].tags : [],
-        metadata: rows[0].metadata && typeof rows[0].metadata === 'object' ? rows[0].metadata : {},
-      })
+        metadata:
+          rows[0].metadata && typeof rows[0].metadata === "object"
+            ? rows[0].metadata
+            : {},
+      });
     },
 
     async updateEntry(id, patch = {}) {
-      const currentEntry = await this.getEntryById(id)
+      const currentEntry = await this.getEntryById(id);
 
       if (!currentEntry) {
-        return null
+        return null;
       }
 
       const nextEntry = normalizeEntry({
@@ -215,21 +243,28 @@ export function createMetadataStore({ connectionString, documentsBaseDir, tableN
         year: patch.year ?? currentEntry.year,
         fileName: patch.fileName ?? currentEntry.fileName,
         outputPath: patch.outputPath ?? currentEntry.outputPath,
-        storedAt: patch.storedAt ?? currentEntry.storedAt ?? new Date().toISOString(),
+        storedAt:
+          patch.storedAt ?? currentEntry.storedAt ?? new Date().toISOString(),
         bytes: patch.bytes ?? currentEntry.bytes,
-      })
+      });
 
-      await this.saveEntry(nextEntry)
-      return nextEntry
+      await this.saveEntry(nextEntry);
+      return nextEntry;
     },
 
     async deleteEntry(id) {
-      const { rowCount } = await pool.query(`DELETE FROM ${tableName} WHERE id = $1`, [id])
-      return rowCount > 0
+      const { rowCount } = await pool.query(
+        `DELETE FROM ${tableName} WHERE id = $1`,
+        [id],
+      );
+      return rowCount > 0;
     },
-
+    async ping() {
+      await pool.query("SELECT 1");
+      return true;
+    },
     async close() {
-      await pool.end()
+      await pool.end();
     },
-  }
+  };
 }

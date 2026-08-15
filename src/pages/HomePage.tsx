@@ -142,10 +142,11 @@ export const HomePage = React.memo<HomePageProps>(
             {filtered.map((doc) => (
               <div key={doc.id} className="col">
                 <DocumentCard
+                // noMetadata={false}
                   document={doc}
                   // onDelete={onDelete}
                   onDelete={(id) => {
-                    // onDelete(id);
+                    onDelete(id);
                     setSelectedDoc(doc)
                  
                   }}

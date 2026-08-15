@@ -1,276 +1,375 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react'
-import type { Document } from '@/types'
-import { CropModal } from '@/components/CropModal'
-
-const yearOptions = Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - index)
-const categoryOptions = ['Haus', 'Steuer', 'Bank', 'Privat', 'Sonstiges']
+import React, { useRef, useState, useCallback, useEffect } from "react";
+import type { Document } from "@/types";
+import { CropModal } from "@/components/CropModal";
+import { DocumentCard } from "@/components/DocumentCard";
+const yearOptions = Array.from(
+  { length: 11 },
+  (_, index) => new Date().getFullYear() - index,
+);
+const categoryOptions = ["Haus", "Steuer", "Bank", "Privat", "Sonstiges"];
 
 interface ScanPageProps {
-  onAdd: (name: string, dataUrl: string, type: Document['type'], tags?: string[]) => void
+  localDocuments?: Document[];
+  onAdd: (
+    name: string,
+    dataUrl: string,
+    type: Document["type"],
+    tags?: string[],
+  ) => void;
+  onDelete: (id: string) => void;
 }
 
-export const ScanPage = React.memo<ScanPageProps>(({ onAdd }) => {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const nativeCameraInputRef = useRef<HTMLInputElement>(null)
-  const [streaming, setStreaming] = useState(false)
-  const [captured, setCaptured] = useState<string | null>(null)
-  const [cropping, setCropping] = useState(false)
-  const [docName, setDocName] = useState('')
-  // const [tags, setTags] = useState('')
-  const [selectedYear, setSelectedYear] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
+export const ScanPage = React.memo<ScanPageProps>(
+  ({ localDocuments, onAdd, onDelete }) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const nativeCameraInputRef = useRef<HTMLInputElement>(null);
+    const [streaming, setStreaming] = useState(false);
+    const [captured, setCaptured] = useState<string | null>(null);
+    const [cropping, setCropping] = useState(false);
+    const [docName, setDocName] = useState("");
+    // const [tags, setTags] = useState('')
+    const [selectedYear, setSelectedYear] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [saved, setSaved] = useState(false);
+    const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
-  const startCamera = useCallback(async () => {
-    setError(null)
-    setSaved(false)
+    const startCamera = useCallback(async () => {
+      setError(null);
+      setSaved(false);
 
-    const isAndroid = /Android/i.test(navigator.userAgent)
+      const isAndroid = /Android/i.test(navigator.userAgent);
 
-    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
-      const detail = isAndroid
-        ? 'Auf Android ist die Kamera in dieser Web-App nicht verfügbar. Bitte die App über Chrome/Edge mit Kamera-Berechtigung öffnen oder eine native App nutzen.'
-        : 'Diese Browser-Version unterstützt keine Kamerazugriffe über die Web-API.'
-      setError(detail)
-      return
-    }
-
-    const requestCamera = async (facingMode: 'user' | 'environment' | undefined) => {
-      const constraints: MediaStreamConstraints = {
-        video: facingMode
-          ? { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
-          : { width: { ideal: 1280 }, height: { ideal: 720 } },
+      if (
+        !navigator.mediaDevices ||
+        typeof navigator.mediaDevices.getUserMedia !== "function"
+      ) {
+        const detail = isAndroid
+          ? "Auf Android ist die Kamera in dieser Web-App nicht verfügbar. Bitte die App über Chrome/Edge mit Kamera-Berechtigung öffnen oder eine native App nutzen."
+          : "Diese Browser-Version unterstützt keine Kamerazugriffe über die Web-API.";
+        setError(detail);
+        return;
       }
 
-      return navigator.mediaDevices.getUserMedia(constraints)
-    }
+      const requestCamera = async (
+        facingMode: "user" | "environment" | undefined,
+      ) => {
+        const constraints: MediaStreamConstraints = {
+          video: facingMode
+            ? { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
+            : { width: { ideal: 1280 }, height: { ideal: 720 } },
+        };
 
-    try {
-      const stream = await requestCamera('environment')
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-        setStreaming(true)
-        setCaptured(null)
-      }
-    } catch (environmentError) {
+        return navigator.mediaDevices.getUserMedia(constraints);
+      };
+
       try {
-        const stream = await requestCamera('user')
+        const stream = await requestCamera("environment");
         if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          await videoRef.current.play()
-          setStreaming(true)
-          setCaptured(null)
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          setStreaming(true);
+          setCaptured(null);
         }
-      } catch (userError) {
-        const message = userError instanceof Error && userError.message
-          ? userError.message
-          : 'Bitte Kamerazugriff im Browser erlauben.'
-        const androidHint = /Android/i.test(navigator.userAgent)
-          ? ' Auf Android kann das auch an fehlender Browser-Berechtigung oder an der Web-App-Umgebung liegen.'
-          : ''
-        setError(`Kamera konnte nicht gestartet werden: ${message}${androidHint}`)
+      } catch (environmentError) {
+        try {
+          const stream = await requestCamera("user");
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            await videoRef.current.play();
+            setStreaming(true);
+            setCaptured(null);
+          }
+        } catch (userError) {
+          const message =
+            userError instanceof Error && userError.message
+              ? userError.message
+              : "Bitte Kamerazugriff im Browser erlauben.";
+          const androidHint = /Android/i.test(navigator.userAgent)
+            ? " Auf Android kann das auch an fehlender Browser-Berechtigung oder an der Web-App-Umgebung liegen."
+            : "";
+          setError(
+            `Kamera konnte nicht gestartet werden: ${message}${androidHint}`,
+          );
+        }
       }
-    }
-  }, [])
+    }, []);
 
-  const stopCamera = useCallback(() => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream
-      stream.getTracks().forEach((t) => t.stop())
-      videoRef.current.srcObject = null
-    }
-    setStreaming(false)
-  }, [])
+    const stopCamera = useCallback(() => {
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((t) => t.stop());
+        videoRef.current.srcObject = null;
+      }
+      setStreaming(false);
+    }, []);
 
-  const handleNativeCameraCapture = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const handleNativeCameraCapture = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
 
-    stopCamera()
-    setError(null)
-    setSaved(false)
+        stopCamera();
+        setError(null);
+        setSaved(false);
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = reader.result as string
-      setCaptured(dataUrl)
-      setCropping(true)
-    }
-    reader.readAsDataURL(file)
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          dataUrl.startsWith("data:application/pdf")
+            ? setCropping(false)
+            : setCropping(true);
+        };
+        reader.readAsDataURL(file);
+        file.type.startsWith("image/") ? setCropping(true) : setCropping(false);
+        event.target.value = "";
+      },
+      [stopCamera],
+    );
 
-    event.target.value = ''
-  }, [stopCamera])
+    useEffect(() => {
+      return () => {
+        stopCamera();
+      };
+    }, [stopCamera]);
 
-  useEffect(() => {
-    return () => {
-      stopCamera()
-    }
-  }, [stopCamera])
+    const capture = useCallback(() => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0);
+      stopCamera();
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      setCaptured(dataUrl);
+      setCropping(true);
+    }, [stopCamera]);
 
-  const capture = useCallback(() => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    if (!video || !canvas) return
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.drawImage(video, 0, 0)
-    stopCamera()
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
-    setCaptured(dataUrl)
-    setCropping(true)
-  }, [stopCamera])
+    const handleCropConfirm = useCallback((croppedUrl: string) => {
+      setCaptured(croppedUrl);
+      setCropping(false);
+    }, []);
 
-  const handleCropConfirm = useCallback((croppedUrl: string) => {
-    setCaptured(croppedUrl)
-    setCropping(false)
-  }, [])
+    const handleCropCancel = useCallback(() => {
+      setCaptured(null);
+      setCropping(false);
+    }, []);
 
-  const handleCropCancel = useCallback(() => {
-    setCaptured(null)
-    setCropping(false)
-  }, [])
+    const handleSave = () => {
+      if (!captured) return;
+      const name =
+        docName.trim() || `Scan ${new Date().toLocaleDateString("de-DE")}`;
+      // const freeTagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
+      // const metadataTags = [
+      //   ...(selectedYear ? [`Jahr:${selectedYear}`] : []),
+      //   ...(selectedCategory ? [`Kategorie:${selectedCategory}`] : []),
+      // ];
+      // const tagList = Array.from(new Set([...metadataTags]));
+      const tagList: string[] = [];
 
-  const handleSave = () => {
-    if (!captured) return
-    const name = docName.trim() || `Scan ${new Date().toLocaleDateString('de-DE')}`
-    // const freeTagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
-    const metadataTags = [
-      ...(selectedYear ? [`Jahr:${selectedYear}`] : []),
-      ...(selectedCategory ? [`Kategorie:${selectedCategory}`] : []),
-    ]
-    const tagList = Array.from(new Set([...metadataTags]))
+      onAdd(name, captured, "scan", tagList);
+      setDocName("");
+      // setTags('')
+      setSelectedYear("");
+      setSelectedCategory("");
+      setCaptured(null);
+      setSaved(true);
+    };
 
-    onAdd(name, captured, 'scan', tagList)
-    setDocName('')
-    // setTags('')
-    setSelectedYear('')
-    setSelectedCategory('')
-    setCaptured(null)
-    setSaved(true)
-  }
+    const handleRetake = () => {
+      setCaptured(null);
+      setSaved(false);
+      startCamera();
+    };
 
-  const handleRetake = () => {
-    setCaptured(null)
-    setSaved(false)
-    startCamera()
-  }
+    return (
+      <div className="container py-4" style={{ maxWidth: 1040 }}>
+        <h2 className="mb-4">📷 Dokument scannen</h2>
 
-  return (
-    <div className="container py-4" style={{ maxWidth: 640 }}>
-      <h2 className="mb-4">📷 Dokument scannen</h2>
-
-      {error && <div className="alert alert-danger">{error}</div>}
-      {saved && <div className="alert alert-success">✅ Dokument gespeichert!</div>}
-
-      <div className="position-relative mb-3 bg-black rounded overflow-hidden" style={{ minHeight: 240 }}>
-        <video
-          ref={videoRef}
-          className="w-100 d-block"
-          autoPlay
-          playsInline
-          muted
-          style={{ display: streaming ? 'block' : 'none', maxHeight: 480, objectFit: 'contain' }}
-        />
-        {streaming && <div className="scan-overlay" />}
-        {captured && !cropping && (
-          <img src={captured} alt="Vorschau" className="w-100 d-block" style={{ maxHeight: 480, objectFit: 'contain' }} />
+        {error && <div className="alert alert-danger">{error}</div>}
+        {saved && (
+          <div className="alert alert-success">✅ Dokument gespeichert!</div>
         )}
-        {!streaming && !captured && (
-          <div className="d-flex align-items-center justify-content-center" style={{ minHeight: 240 }}>
-            <span className="text-muted">📷 Kamera noch nicht aktiv</span>
-          </div>
-        )}
-      </div>
 
-      <canvas ref={canvasRef} className="d-none" />
-
-      {!streaming && !captured && (
-        <div className="d-flex flex-column gap-2 mb-3">
-          <button className="btn btn-primary w-100" onClick={startCamera}>
-            📷 Kamera starten
-          </button>
-          <button className="btn btn-outline-secondary w-100" onClick={() => nativeCameraInputRef.current?.click()}>
-            📸 Native Android-Kamera öffnen
-          </button>
-          <input
-            ref={nativeCameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="d-none"
-            onChange={handleNativeCameraCapture}
+        <div
+          className="position-relative mb-3 bg-black rounded overflow-hidden"
+          style={{ minHeight: 240 }}
+        >
+          <video
+            ref={videoRef}
+            className="w-100 d-block"
+            autoPlay
+            playsInline
+            muted
+            style={{
+              display: streaming ? "block" : "none",
+              maxHeight: 480,
+              objectFit: "contain",
+            }}
           />
+          {streaming && <div className="scan-overlay" />}
+          {captured && !cropping && (
+            <img
+              src={captured}
+              alt="Vorschau"
+              className="w-100 d-block"
+              style={{ maxHeight: 480, objectFit: "contain" }}
+            />
+          )}
+          {!streaming && !captured && (
+            <div
+              className="d-flex align-items-center justify-content-center"
+              style={{ minHeight: 240 }}
+            >
+              <span className="text-muted">📷 Kamera noch nicht aktiv</span>
+            </div>
+          )}
         </div>
-      )}
 
-      {streaming && (
-        <div className="d-flex gap-2 mb-3">
-          <button className="btn btn-success flex-fill" onClick={capture}>📸 Aufnehmen</button>
-          <button className="btn btn-secondary" onClick={stopCamera}>✕ Abbrechen</button>
-        </div>
-      )}
+        <canvas ref={canvasRef} className="d-none" />
 
-      {captured && !cropping && (
-        <div className="card p-3">
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Aussteller</label>
+        {!streaming && !captured && (
+          <div className="d-flex flex-column gap-2 mb-3">
+            <button className="btn btn-primary w-100" onClick={startCamera}>
+              📷 Kamera starten
+            </button>
+            <button
+              className="btn btn-outline-secondary w-100"
+              onClick={() => nativeCameraInputRef.current?.click()}
+            >
+              📸 Native Android-Kamera öffnen
+            </button>
             <input
-              type="text"
-              className="form-control"
-              placeholder={`Scan ${new Date().toLocaleDateString('de-DE')}`}
-              value={docName}
-              onChange={(e) => setDocName(e.target.value)}
+              ref={nativeCameraInputRef}
+              type="file"
+              accept="image/*||applivation/pdf"
+              capture="environment"
+              className="d-none"
+              onChange={handleNativeCameraCapture}
             />
           </div>
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Jahr</label>
-            <select
-              className="form-select"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-            >
-              <option value="">Bitte wählen</option>
-              {yearOptions.map((year) => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+        )}
+
+        {streaming && (
+          <div className="d-flex gap-2 mb-3">
+            <button className="btn btn-success flex-fill" onClick={capture}>
+              📸 Aufnehmen
+            </button>
+            <button className="btn btn-secondary" onClick={stopCamera}>
+              ✕ Abbrechen
+            </button>
           </div>
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Kategorie</label>
-            <select
-              className="form-select"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="">Bitte wählen</option>
-              {categoryOptions.map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+        )}
+
+        {captured && !cropping && (
+          <div className="card p-3">
+            {/* <div className="mb-3">
+              <label className="form-label fw-semibold">Aussteller</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder={`Scan ${new Date().toLocaleDateString("de-DE")}`}
+                value={docName}
+                onChange={(e) => setDocName(e.target.value)}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold">Jahr</label>
+              <select
+                className="form-select"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+              >
+                <option value="">Bitte wählen</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold">Kategorie</label>
+              <select
+                className="form-select"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">Bitte wählen</option>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div> */}
+
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-success flex-fill"
+                onClick={handleSave}
+              >
+                💾 Übernehmen
+              </button>
+              <button
+                className="btn btn-outline-primary"
+                onClick={() => setCropping(true)}
+                title="Erneut zuschneiden"
+              >
+                ✂️ Zuschneiden
+              </button>
+              <button
+                className="btn btn-outline-secondary"
+                onClick={handleRetake}
+              >
+                🔄 Neu aufnehmen
+              </button>
+            </div>
           </div>
-          
-          <div className="d-flex gap-2">
-            <button className="btn btn-success flex-fill" onClick={handleSave}>💾 Speichern</button>
-            <button className="btn btn-outline-primary" onClick={() => setCropping(true)} title="Erneut zuschneiden">✂️ Zuschneiden</button>
-            <button className="btn btn-outline-secondary" onClick={handleRetake}>🔄 Neu aufnehmen</button>
+        )}
+
+        {cropping && (
+          <CropModal
+            imageSrc={captured}
+            onConfirm={handleCropConfirm}
+            onCancel={handleCropCancel}
+          />
+        )}
+        {localDocuments?.length !== 0 ? (
+          <div className="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
+            {localDocuments?.map((doc) => (
+              <div key={doc.id} className="col">
+                <DocumentCard
+                  document={doc}
+                  onDelete={(id) => {
+                    onDelete(id);
+                    setSelectedDoc(doc);
+                  }}
+                  onRename={() => {
+                    // onRename(id);
+                    setSelectedDoc(doc);
+                  }}
+                  onView={setSelectedDoc}
+                />
+              </div>
+            ))}
           </div>
+        ) : null}
+        <div className="d-flex gap-3 mt-3">
+          <button className="btn btn-success" onClick={handleSave}>
+            💾 Speichern und hochladen
+          </button>
+          <button className="btn btn-outline-secondary" onClick={handleRetake}>
+            🔄 Abbrechen
+          </button>
         </div>
-      )}
+      </div>
+    );
+  },
+);
 
-      {cropping && (
-        <CropModal
-          imageSrc={captured}
-          onConfirm={handleCropConfirm}
-          onCancel={handleCropCancel}
-        />
-      )}
-    </div>
-  )
-})
-
-ScanPage.displayName = 'ScanPage'
+ScanPage.displayName = "ScanPage";
