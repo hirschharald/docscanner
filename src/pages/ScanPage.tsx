@@ -24,9 +24,11 @@ export const ScanPage = React.memo<ScanPageProps>(
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const nativeCameraInputRef = useRef<HTMLInputElement>(null);
+    const nativeInputRef = useRef<HTMLInputElement>(null);
     const [streaming, setStreaming] = useState(false);
     const [captured, setCaptured] = useState<string | null>(null);
     const [cropping, setCropping] = useState(false);
+    const [dragging, setDragging] = useState(false);
     const [docName, setDocName] = useState("");
     // const [tags, setTags] = useState('')
     const [selectedYear, setSelectedYear] = useState("");
@@ -105,6 +107,47 @@ export const ScanPage = React.memo<ScanPageProps>(
       setStreaming(false);
     }, []);
 
+    const processFiles = useCallback((files: FileList | null) => {
+      if (!files) return;
+      Array.from(files)
+        .filter(
+          (f) => f.type.startsWith("image/") || f.type === "application/pdf",
+        )
+        .forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            // setPreviews((prev) => [...prev, { file, dataUrl }])
+          };
+          reader.readAsDataURL(file);
+        });
+    }, []);
+
+    const handleDrop =  useCallback( ()=> stopCamera() ,[stopCamera])
+
+    const handleFileInput = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        stopCamera();
+        setError(null);
+        setSaved(false);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          dataUrl.startsWith("data:application/pdf")
+            ? (setCropping(false), handleSave())
+            : setCropping(true);
+        };
+        reader.readAsDataURL(file);
+        file.type.startsWith("image/") ? setCropping(true) : setCropping(false);
+        event.target.value = "";
+      },
+      [stopCamera],
+    );
+
     const handleNativeCameraCapture = useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -118,12 +161,13 @@ export const ScanPage = React.memo<ScanPageProps>(
         reader.onload = () => {
           const dataUrl = reader.result as string;
           dataUrl.startsWith("data:application/pdf")
-            ? setCropping(false)
+            ? (setCropping(false), handleSave())
             : setCropping(true);
         };
         reader.readAsDataURL(file);
         file.type.startsWith("image/") ? setCropping(true) : setCropping(false);
         event.target.value = "";
+        // onAdd(name, captured, "scan", tagList);
       },
       [stopCamera],
     );
@@ -186,9 +230,14 @@ export const ScanPage = React.memo<ScanPageProps>(
       startCamera();
     };
 
+    const startErfassung = () => {
+      setError(null);
+      setSaved(false);
+    };
+
     return (
       <div className="container py-4" style={{ maxWidth: 1040 }}>
-        <h2 className="mb-4">📷 Dokument scannen</h2>
+        <h2 className="mb-4">📷 Dokumente erfassen</h2>
 
         {error && <div className="alert alert-danger">{error}</div>}
         {saved && (
@@ -237,12 +286,14 @@ export const ScanPage = React.memo<ScanPageProps>(
             <button className="btn btn-primary w-100" onClick={startCamera}>
               📷 Kamera starten
             </button>
+
             <button
-              className="btn btn-outline-secondary w-100"
+              className="btn btn-outline-primary w-100"
               onClick={() => nativeCameraInputRef.current?.click()}
             >
               📸 Native Android-Kamera öffnen
             </button>
+
             <input
               ref={nativeCameraInputRef}
               type="file"
@@ -250,6 +301,31 @@ export const ScanPage = React.memo<ScanPageProps>(
               capture="environment"
               className="d-none"
               onChange={handleNativeCameraCapture}
+            />
+            <button
+              className="btn btn-primary w-100"
+              onClick={() => nativeInputRef.current?.click()}
+            >
+              📷 Dokument hochladen
+            </button>
+              <div
+        className={`rounded p-5 text-center mb-4 ${dragging ? 'bg-primary bg-opacity-10 border border-primary' : 'border border-secondary'}`}
+        style={{ borderStyle: 'dashed', cursor: 'pointer' }}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => nativeInputRef.current?.click()}
+      >
+        <div className="display-4 mb-2">📂</div>
+        <p className="mb-1 fw-semibold">Bilder oder PDFs hierher ziehen oder klicken</p>
+        <small className="text-muted">JPG, PNG, WebP, GIF oder PDF – mehrere Dateien möglich</small>
+            <input
+              ref={nativeInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              multiple
+              className="d-none"
+              onChange={(e) => processFiles(e.target.files)}
             />
           </div>
         )}

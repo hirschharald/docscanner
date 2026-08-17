@@ -45,23 +45,13 @@ export const Navbar = React.memo<NavbarProps>(
             </li>
             <li className="nav-item">
               <NavLink className="nav-link" to="/scan">
-                Scannen
+                Erfassen
               </NavLink>
             </li>
             <li className="nav-item">
               <NavLink className="nav-link" to="/upload">
                 Hochladen
               </NavLink>
-            </li>
-            <li className="nav-item">
-              <button
-                // className="btn btn-outline-light btn-sm"
-                className="nav-link"
-                onClick={onToArchive}
-                aria-label="Speichern"
-              >
-                Speichern
-              </button>
             </li>
           </ul>
           <button

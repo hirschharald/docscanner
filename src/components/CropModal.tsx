@@ -15,7 +15,7 @@ function centerInitialCrop(width: number, height: number): Crop {
     height
   )
 }
-
+// convert the cropped area of the image to a canvas and return it
 function getCroppedCanvas(image: HTMLImageElement, crop: PixelCrop): HTMLCanvasElement {
   const scaleX = image.naturalWidth / image.width
   const scaleY = image.naturalHeight / image.height
