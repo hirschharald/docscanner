@@ -9,8 +9,6 @@ interface DocumentModalProps {
   onCropSave?: (id: string, dataUrl: string) => void;
 }
 
-
-
 export const DocumentModal = React.memo<DocumentModalProps>(
   ({ document, onClose, onCropSave }) => {
     const [cropping, setCropping] = useState(false);
@@ -44,7 +42,7 @@ export const DocumentModal = React.memo<DocumentModalProps>(
 
     const metadataTags = document.tags.filter((tag) => tag.includes(":"));
     const isPdf =
-      document.dataUrl.startsWith("data:application/pdf") ||
+      document.dataUrl?.startsWith("data:application/pdf") ||
       document.name.toLowerCase().endsWith(".pdf");
 
     if (cropping) {
@@ -66,6 +64,7 @@ export const DocumentModal = React.memo<DocumentModalProps>(
       >
         <div
           className="modal-dialog modal-xl modal-dialog-centered"
+          
           onClick={(e) => e.stopPropagation()}
         >
           <div className="modal-content">

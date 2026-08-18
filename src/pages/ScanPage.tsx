@@ -30,11 +30,17 @@ export const ScanPage = React.memo<ScanPageProps>(
     const [captured, setCaptured] = useState<string | null>(null);
     const [cropping, setCropping] = useState(false);
     const [dragging, setDragging] = useState(false);
+    const [closeModal,setCloseModal ]=useState(false)
 
     const [docName, setDocName] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+
+
+    const handleOpenMetadataModal = () => {
+      setCloseModal(false);
+    }
 
     const startCamera = useCallback(async () => {
       setError(null);
@@ -219,6 +225,12 @@ export const ScanPage = React.memo<ScanPageProps>(
     };
 
     return (
+      <div
+        className="modal d-block"
+        tabIndex={-1}
+        style={{ background: "rgba(0,0,0,0.7)" }}
+        
+      >
       <div className="container py-4" style={{ maxWidth: 1040 }}>
         <h2 className="mb-4">📷 Dokument scannen</h2>
 
@@ -425,23 +437,25 @@ export const ScanPage = React.memo<ScanPageProps>(
                     // onRename(id);
                     setSelectedDoc(doc);
                   }}
-                  onView={selectedDoc ? () => onView(selectedDoc) : undefined   }
+                  onView={() => onView(doc)}
                 />
               </div>
             ))}
           </div>
         ) : null}
         <div className="d-flex gap-3 mt-3">
-          <button className="btn btn-success" onClick={handleSave}>
+          <button className="btn btn-success" onClick={handleOpenMetadataModal}>
             💾 Speichern und hochladen
           </button>
           <button className="btn btn-outline-secondary" onClick={handleRetake}>
             🔄 Abbrechen
           </button>
         </div>
-             
-          <MetadataCard documents={[]} toArchive={(id) => onDelete(id)} />
+             {!closeModal?(
+               <MetadataCard documents={[]} onClose={() => setCloseModal(true)} />
+             ):null}
         
+      </div>
       </div>
     );
   },

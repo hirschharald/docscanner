@@ -15,7 +15,6 @@ interface DocumentCardProps {
   onDelete: (id: string) => void;
   onRename: (id: string, name: string, tags: string[]) => void;
   onView: (document: Document) => void;
-  // noMetadata: boolean;
 }
 
 export const DocumentCard = React.memo<DocumentCardProps>(
