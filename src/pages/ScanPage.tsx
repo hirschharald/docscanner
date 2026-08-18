@@ -1,12 +1,10 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import type { Document } from "@/types";
 import { CropModal } from "@/components/CropModal";
+import  { DocumentModal } from "@/components/DocumentModal";
 import { DocumentCard } from "@/components/DocumentCard";
-const yearOptions = Array.from(
-  { length: 11 },
-  (_, index) => new Date().getFullYear() - index,
-);
-const categoryOptions = ["Haus", "Steuer", "Bank", "Privat", "Sonstiges"];
+import { MetadataCard } from "@/components/MetaDataModal";
+
 
 interface ScanPageProps {
   localDocuments?: Document[];
@@ -17,24 +15,23 @@ interface ScanPageProps {
     tags?: string[],
   ) => void;
   onDelete: (id: string) => void;
+  onView: (document: Document) => void;
 }
 
 export const ScanPage = React.memo<ScanPageProps>(
-  ({ localDocuments, onAdd, onDelete }) => {
+  ({ localDocuments, onAdd, onDelete , onView}) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const nativeCameraInputRef = useRef<HTMLInputElement>(null);
     const nativeInputRef = useRef<HTMLInputElement>(null);
 
+    const [fileSelect, setFileSelect] = useState(false);
     const [streaming, setStreaming] = useState(false);
     const [captured, setCaptured] = useState<string | null>(null);
     const [cropping, setCropping] = useState(false);
     const [dragging, setDragging] = useState(false);
 
     const [docName, setDocName] = useState("");
-    // const [tags, setTags] = useState('')
-    const [selectedYear, setSelectedYear] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
@@ -108,7 +105,7 @@ export const ScanPage = React.memo<ScanPageProps>(
       }
       setStreaming(false);
     }, []);
-
+    // processFiles function to handle file uploads
     const processFiles = useCallback((files: FileList | null) => {
       if (!files) return;
       Array.from(files)
@@ -117,15 +114,28 @@ export const ScanPage = React.memo<ScanPageProps>(
         )
         .forEach((file) => {
           const reader = new FileReader();
+          const name =
+            file.name.trim() ||
+            `Scan ${new Date().toLocaleDateString("de-DE")}`;
           reader.onload = (e) => {
             const dataUrl = e.target?.result as string;
-            // setPreviews((prev) => [...prev, { file, dataUrl }])
+            // setPreviews((prev) => [...prev, { file, dataUrl }]);
+            const tagList: string[] = [];
+            onAdd(name, dataUrl, "upload", tagList);
+            setFileSelect(false);
           };
           reader.readAsDataURL(file);
         });
     }, []);
-
-    const handleDrop = useCallback(() => stopCamera(), [stopCamera]);
+    //  handleDrop function to handle drag-and-drop file uploads
+    const handleDrop = useCallback(
+      (e: React.DragEvent) => {
+        e.preventDefault();
+        setDragging(false);
+        processFiles(e.dataTransfer.files);
+      },
+      [processFiles],
+    );
 
     const handleNativeCameraCapture = useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,8 +206,8 @@ export const ScanPage = React.memo<ScanPageProps>(
       onAdd(name, captured, "scan", tagList);
       setDocName("");
       // setTags('')
-      setSelectedYear("");
-      setSelectedCategory("");
+      // setSelectedYear("");
+      // setSelectedCategory("");
       setCaptured(null);
       setSaved(true);
     };
@@ -275,38 +285,44 @@ export const ScanPage = React.memo<ScanPageProps>(
             />
             <button
               className="btn btn-primary w-100"
-              onClick={() => nativeInputRef.current?.click()}
+              onClick={() => {
+                setFileSelect(true);
+                // nativeInputRef.current?.click();
+              }}
             >
               📷 Dokument hochladen
             </button>
-
-            <div
-              className={`rounded p-5 text-center mb-4 ${dragging ? "bg-primary bg-opacity-10 border border-primary" : "border border-secondary"}`}
-              style={{ borderStyle: "dashed", cursor: "pointer" }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragging(true);
-              }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => nativeInputRef.current?.click()}
-            >
-              <div className="display-4 mb-2">📂</div>
-              <p className="mb-1 fw-semibold">
-                Bilder oder PDFs hierher ziehen oder klicken
-              </p>
-              <small className="text-muted">
-                JPG, PNG, WebP, GIF oder PDF – mehrere Dateien möglich
-              </small>
-              <input
-                ref={nativeInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                multiple
-                className="d-none"
-                onChange={(e) => processFiles(e.target.files)}
-              />
-            </div>
+            {fileSelect && (
+              <div
+                className={`rounded p-5 text-center mb-4 ${dragging ? "bg-primary bg-opacity-10 border border-primary" : "border border-secondary"}`}
+                style={{ borderStyle: "dashed", cursor: "pointer" }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => {
+                  nativeInputRef.current?.click();
+                }}
+              >
+                <div className="display-4 mb-2">📂</div>
+                <p className="mb-1 fw-semibold">
+                  Bilder oder PDFs hierher ziehen oder klicken
+                </p>
+                <small className="text-muted">
+                  JPG, PNG, WebP, GIF oder PDF – mehrere Dateien möglich
+                </small>
+                <input
+                  ref={nativeInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  multiple
+                  className="d-none"
+                  onChange={(e) => processFiles(e.target.files)}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -409,7 +425,7 @@ export const ScanPage = React.memo<ScanPageProps>(
                     // onRename(id);
                     setSelectedDoc(doc);
                   }}
-                  onView={setSelectedDoc}
+                  onView={selectedDoc ? () => onView(selectedDoc) : undefined   }
                 />
               </div>
             ))}
@@ -423,6 +439,9 @@ export const ScanPage = React.memo<ScanPageProps>(
             🔄 Abbrechen
           </button>
         </div>
+             
+          <MetadataCard documents={[]} toArchive={(id) => onDelete(id)} />
+        
       </div>
     );
   },

@@ -40,7 +40,6 @@ function App() {
     removeDocument,
     updateDocument,
     cropDocument,
-    toArchive,
   } = useDocuments();
 
   // in App():
@@ -114,6 +113,7 @@ function App() {
                     localDocuments={localDocuments}
                     onAdd={addDocument}
                     onDelete={removeDocument}
+                    onView={handleUpdate}
                   />
                 </ErrorBoundary>
               }

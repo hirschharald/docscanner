@@ -1,117 +1,144 @@
-import React, { useState, useCallback, useRef } from 'react'
-import type { Document } from '@/types'
-import { CropModal } from '@/components/CropModal'
+import React, { useState, useCallback, useRef } from "react";
+import type { Document } from "@/types";
+import { CropModal } from "@/components/CropModal";
 
-const yearOptions = Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - index)
-const categoryOptions = ['Haus', 'Steuer', 'Bank', 'Privat', 'Sonstiges']
-
+const yearOptions = Array.from(
+  { length: 11 },
+  (_, index) => new Date().getFullYear() - index,
+);
+const categoryOptions = ["Haus", "Steuer", "Bank", "Privat", "Sonstiges"];
 
 interface PreviewItem {
-  file: File
-  dataUrl: string
+  file: File;
+  dataUrl: string;
 }
 
 interface UploadPageProps {
-  onAdd: (name: string, dataUrl: string, type: Document['type'], tags?: string[]) => void
+  onAdd: (
+    name: string,
+    dataUrl: string,
+    type: Document["type"],
+    tags?: string[],
+  ) => void;
 }
 
 export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
-  const [previews, setPreviews] = useState<PreviewItem[]>([])
-  const [tags, setTags] = useState('')
-  const [dragging, setDragging] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [cropIndex, setCropIndex] = useState<number | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-    const [selectedYear, setSelectedYear] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const [previews, setPreviews] = useState<PreviewItem[]>([]);
+  const [tags, setTags] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [cropIndex, setCropIndex] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedYear, setSelectedYear] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const processFiles = useCallback((files: FileList | null) => {
-    if (!files) return
+    if (!files) return;
     Array.from(files)
-      .filter((f) => f.type.startsWith('image/') || f.type === 'application/pdf')
+      .filter(
+        (f) => f.type.startsWith("image/") || f.type === "application/pdf",
+      )
       .forEach((file) => {
-        const reader = new FileReader()
+        const reader = new FileReader();
         reader.onload = (e) => {
-          const dataUrl = e.target?.result as string
-          setPreviews((prev) => [...prev, { file, dataUrl }])
-        }
-        reader.readAsDataURL(file)
-      })
-  }, [])
+          const dataUrl = e.target?.result as string;
+          setPreviews((prev) => [...prev, { file, dataUrl }]);
+        };
+        reader.readAsDataURL(file);
+      });
+  }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
-      e.preventDefault()
-      setDragging(false)
-      processFiles(e.dataTransfer.files)
+      e.preventDefault();
+      setDragging(false);
+      processFiles(e.dataTransfer.files);
     },
-    [processFiles]
-  )
+    [processFiles],
+  );
 
   const handleSaveAll = () => {
-    
     const metadataTags = [
       ...(selectedYear ? [`Jahr:${selectedYear}`] : []),
       ...(selectedCategory ? [`Kategorie:${selectedCategory}`] : []),
-    ]
-    const tagList = Array.from(new Set([...metadataTags]))
+    ];
+    const tagList = Array.from(new Set([...metadataTags]));
     previews.forEach(({ file, dataUrl }) => {
-      const name = file.name.trim() || `Scan ${new Date().toLocaleDateString('de-DE')}`
+      const name =
+        file.name.trim() || `Scan ${new Date().toLocaleDateString("de-DE")}`;
       // onAdd(file.name.replace(/\.[^.]+$/, ''), dataUrl, 'upload', tagList)
-      onAdd(name, dataUrl, 'upload', tagList)
-    })
-    setPreviews([])
-    setSelectedYear('')
-    setSelectedCategory('')
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
-  }
+      onAdd(name, dataUrl, "upload", tagList);
+    });
+    setPreviews([]);
+    setSelectedYear("");
+    setSelectedCategory("");
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   const removePreview = (index: number) =>
-    setPreviews((prev) => prev.filter((_, i) => i !== index))
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
 
-  const handleCropConfirm = useCallback((croppedUrl: string) => {
-    if (cropIndex === null) return
-    setPreviews((prev) =>
-      prev.map((p, i) => (i === cropIndex ? { ...p, dataUrl: croppedUrl } : p))
-    )
-    setCropIndex(null)
-  }, [cropIndex])
+  const handleCropConfirm = useCallback(
+    (croppedUrl: string) => {
+      if (cropIndex === null) return;
+      setPreviews((prev) =>
+        prev.map((p, i) =>
+          i === cropIndex ? { ...p, dataUrl: croppedUrl } : p,
+        ),
+      );
+      setCropIndex(null);
+    },
+    [cropIndex],
+  );
 
-  const cropSrc = cropIndex !== null ? previews[cropIndex]?.dataUrl ?? null : null
+  const cropSrc =
+    cropIndex !== null ? (previews[cropIndex]?.dataUrl ?? null) : null;
 
   const handleOpenPreview = (dataUrl: string) => {
-    window.open(dataUrl, '_blank', 'noopener,noreferrer')
-  }
+    window.open(dataUrl, "_blank", "noopener,noreferrer");
+  };
 
   const handleDownloadPreview = (fileName: string, dataUrl: string) => {
-    const link = document.createElement('a')
-    link.href = dataUrl
-    link.download = fileName
-    link.click()
-  }
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = fileName;
+    link.click();
+  };
 
   return (
     <div className="container py-4" style={{ maxWidth: 700 }}>
       <h2 className="mb-4">📁 Dokument hochladen</h2>
 
-      {saved && <div className="alert alert-success">✅ Alle Dokumente gespeichert!</div>}
+      {saved && (
+        <div className="alert alert-success">
+          ✅ Alle Dokumente gespeichert!
+        </div>
+      )}
 
       <div className="alert alert-info mb-4">
-        <strong>Fallback:</strong> Wenn die Kamera auf Android nicht verfügbar ist, kannst du Bilder hier direkt auswählen und speichern.
+        <strong>Fallback:</strong> Wenn die Kamera auf Android nicht verfügbar
+        ist, kannst du Bilder hier direkt auswählen und speichern.
       </div>
 
       <div
-        className={`rounded p-5 text-center mb-4 ${dragging ? 'bg-primary bg-opacity-10 border border-primary' : 'border border-secondary'}`}
-        style={{ borderStyle: 'dashed', cursor: 'pointer' }}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        className={`rounded p-5 text-center mb-4 ${dragging ? "bg-primary bg-opacity-10 border border-primary" : "border border-secondary"}`}
+        style={{ borderStyle: "dashed", cursor: "pointer" }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
       >
         <div className="display-4 mb-2">📂</div>
-        <p className="mb-1 fw-semibold">Bilder oder PDFs hierher ziehen oder klicken</p>
-        <small className="text-muted">JPG, PNG, WebP, GIF oder PDF – mehrere Dateien möglich</small>
+        <p className="mb-1 fw-semibold">
+          Bilder oder PDFs hierher ziehen oder klicken
+        </p>
+        <small className="text-muted">
+          JPG, PNG, WebP, GIF oder PDF – mehrere Dateien möglich
+        </small>
         <input
           ref={inputRef}
           type="file"
@@ -126,7 +153,9 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
         <>
           <div className="row row-cols-2 row-cols-sm-3 g-3 mb-3">
             {previews.map(({ file, dataUrl }, i) => {
-              const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+              const isPdf =
+                file.type === "application/pdf" ||
+                file.name.toLowerCase().endsWith(".pdf");
 
               return (
                 <div key={i} className="col">
@@ -136,14 +165,23 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
                         src={dataUrl}
                         title={file.name}
                         className="rounded shadow-sm"
-                        style={{ height: 130, width: '100%', border: 'none', background: '#fff' }}
+                        style={{
+                          height: 130,
+                          width: "100%",
+                          border: "none",
+                          background: "#fff",
+                        }}
                       />
                     ) : (
                       <img
                         src={dataUrl}
                         alt={file.name}
                         className="img-fluid rounded shadow-sm"
-                        style={{ height: 130, width: '100%', objectFit: 'cover' }}
+                        style={{
+                          height: 130,
+                          width: "100%",
+                          objectFit: "cover",
+                        }}
                       />
                     )}
                     <div className="position-absolute top-0 end-0 m-1 d-flex flex-column gap-1">
@@ -152,15 +190,30 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
                           className="btn btn-primary btn-sm"
                           onClick={() => setCropIndex(i)}
                           title="Zuschneiden"
-                          style={{ borderRadius: '50%', width: 28, height: 28, padding: 0, fontSize: '0.8rem' }}
-                        >✂️</button>
+                          style={{
+                            borderRadius: "50%",
+                            width: 28,
+                            height: 28,
+                            padding: 0,
+                            fontSize: "0.8rem",
+                          }}
+                        >
+                          ✂️
+                        </button>
                       )}
                       <button
                         className="btn btn-danger btn-sm"
                         onClick={() => removePreview(i)}
                         aria-label="Entfernen"
-                        style={{ borderRadius: '50%', width: 28, height: 28, padding: 0 }}
-                      >✕</button>
+                        style={{
+                          borderRadius: "50%",
+                          width: 28,
+                          height: 28,
+                          padding: 0,
+                        }}
+                      >
+                        ✕
+                      </button>
                     </div>
                     {isPdf && (
                       <div className="position-absolute bottom-0 start-0 end-0 m-1 d-flex gap-1">
@@ -168,18 +221,26 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
                           className="btn btn-sm btn-outline-light"
                           onClick={() => handleOpenPreview(dataUrl)}
                           title="Öffnen"
-                        >🔎</button>
+                        >
+                          🔎
+                        </button>
                         <button
                           className="btn btn-sm btn-outline-light"
-                          onClick={() => handleDownloadPreview(file.name, dataUrl)}
+                          onClick={() =>
+                            handleDownloadPreview(file.name, dataUrl)
+                          }
                           title="Herunterladen"
-                        >⬇️</button>
+                        >
+                          ⬇️
+                        </button>
                       </div>
                     )}
                   </div>
-                  <small className="d-block text-truncate mt-1 text-muted">{file.name}</small>
+                  <small className="d-block text-truncate mt-1 text-muted">
+                    {file.name}
+                  </small>
                 </div>
-              )
+              );
             })}
           </div>
 
@@ -193,7 +254,7 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
               onChange={(e) => setTags(e.target.value)}
             />
           </div>
-<div className="mb-3">
+          <div className="mb-3">
             <label className="form-label fw-semibold">Jahr:</label>
             <select
               className="form-select"
@@ -202,7 +263,9 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
             >
               <option value="">Bitte wählen</option>
               {yearOptions.map((year) => (
-                <option key={year} value={year}>{year}</option>
+                <option key={year} value={year}>
+                  {year}
+                </option>
               ))}
             </select>
           </div>
@@ -215,12 +278,15 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
             >
               <option value="">Bitte wählen</option>
               {categoryOptions.map((category) => (
-                <option key={category} value={category}>{category}</option>
+                <option key={category} value={category}>
+                  {category}
+                </option>
               ))}
             </select>
           </div>
           <button className="btn btn-success w-100" onClick={handleSaveAll}>
-            💾 {previews.length} Dokument{previews.length > 1 ? 'e' : ''} speichern
+            💾 {previews.length} Dokument{previews.length > 1 ? "e" : ""}{" "}
+            speichern
           </button>
         </>
       )}
@@ -231,7 +297,7 @@ export const UploadPage = React.memo<UploadPageProps>(({ onAdd }) => {
         onCancel={() => setCropIndex(null)}
       />
     </div>
-  )
-})
+  );
+});
 
-UploadPage.displayName = 'UploadPage'
+UploadPage.displayName = "UploadPage";

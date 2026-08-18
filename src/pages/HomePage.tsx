@@ -129,10 +129,7 @@ export const HomePage = React.memo<HomePageProps>(
             {!query && !selectedYear && !selectedCategory && (
               <div className="d-flex gap-2 justify-content-center">
                 <a href="/scan" className="btn btn-primary">
-                  📷 Scannen
-                </a>
-                <a href="/upload" className="btn btn-outline-primary">
-                  📁 Hochladen
+                  📷 Erfassen
                 </a>
               </div>
             )}
@@ -142,13 +139,12 @@ export const HomePage = React.memo<HomePageProps>(
             {filtered.map((doc) => (
               <div key={doc.id} className="col">
                 <DocumentCard
-                // noMetadata={false}
+                  // noMetadata={false}
                   document={doc}
                   // onDelete={onDelete}
                   onDelete={(id) => {
                     onDelete(id);
-                    setSelectedDoc(doc)
-                 
+                    setSelectedDoc(doc);
                   }}
                   onRename={onRename}
                   onView={setSelectedDoc}

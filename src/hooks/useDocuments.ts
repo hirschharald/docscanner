@@ -67,6 +67,7 @@ export function useDocuments() {
     void refreshAll();
   }, [refreshAll]);
 
+  //
   const addDocument = useCallback(
     (
       name: string,
@@ -87,12 +88,6 @@ export function useDocuments() {
         const updated = [doc, ...prev];
         // save documents to local storage
         void saveDocuments(updated);
-        // void uploadDocumentsToBackend(updated)
-        //   .catch(() => undefined)
-        //   .finally(() => {
-        //     void refreshAll();
-        //   });
-
         return updated;
       });
 
@@ -101,7 +96,7 @@ export function useDocuments() {
     [refreshAll],
   );
 
-  const addDocToArchive = useCallback(
+  const addDocsToArchive = useCallback(
     (
       name: string,
       dataUrl: string,
@@ -173,6 +168,6 @@ export function useDocuments() {
     removeDocument,
     updateDocument,
     cropDocument,
-    toArchive: addDocToArchive,
+    toArchive: addDocsToArchive,
   };
 }

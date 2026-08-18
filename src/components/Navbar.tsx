@@ -5,7 +5,6 @@ import type { Theme } from "@/types";
 interface NavbarProps {
   theme: Theme;
   onToggleTheme: () => void;
-  onToArchive?: () => void;
   backendAvailable: boolean;
   dbAvailable: boolean;
   statusLoading: boolean;
@@ -15,7 +14,6 @@ export const Navbar = React.memo<NavbarProps>(
   ({
     theme,
     onToggleTheme,
-    onToArchive,
     backendAvailable,
     dbAvailable,
     statusLoading,
@@ -48,11 +46,7 @@ export const Navbar = React.memo<NavbarProps>(
                 Erfassen
               </NavLink>
             </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/upload">
-                Hochladen
-              </NavLink>
-            </li>
+       
           </ul>
           <button
             className="btn btn-outline-light btn-sm"
