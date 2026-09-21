@@ -34,7 +34,7 @@ function buildPoolConfig(connectionString) {
 
   return {
     host: process.env.PGHOST || process.env.DB_HOST || "localhost",
-    port: Number(process.env.PGPORT || process.env.DB_PORT || 5432),
+    port: Number(process.env.PGPORT || process.env.DB_PORT || 5433),
     user: process.env.PGUSER || process.env.DB_USER || "docscanner",
     password: process.env.PGPASSWORD || process.env.DB_PASSWORD || "docscanner",
     database: process.env.PGDATABASE || process.env.DB_NAME || "docscanner",
@@ -81,7 +81,8 @@ export function createMetadataStore({
         "fileName" TEXT,
         "outputPath" TEXT,
         "storedAt" TEXT NOT NULL,
-        bytes BIGINT
+        bytes BIGINT,
+        isArchived BOOLEAN NOT NULL DEFAULT TRUE
       )
     `);
   }
@@ -104,7 +105,7 @@ export function createMetadataStore({
           `
           INSERT INTO ${tableName} (
             id, name, type, "createdAt", tags, metadata, year, "fileName", "outputPath", "storedAt", bytes
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
             type = EXCLUDED.type,
@@ -129,6 +130,7 @@ export function createMetadataStore({
             entry.outputPath || null,
             entry.storedAt || new Date().toISOString(),
             entry.bytes || null,
+            entry.isArchived ?? true,
           ],
         );
       }
@@ -171,8 +173,8 @@ export function createMetadataStore({
       await pool.query(
         `
         INSERT INTO ${tableName} (
-          id, name, type, "createdAt", tags, metadata, year, "fileName", "outputPath", "storedAt", bytes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          id, name, type, "createdAt", tags, metadata, year, "fileName", "outputPath", "storedAt", bytes, "isArchived"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           type = EXCLUDED.type,
@@ -183,7 +185,8 @@ export function createMetadataStore({
           "fileName" = EXCLUDED."fileName",
           "outputPath" = EXCLUDED."outputPath",
           "storedAt" = EXCLUDED."storedAt",
-          bytes = EXCLUDED.bytes
+          bytes = EXCLUDED.bytes,
+          "isArchived" = EXCLUDED."isArchived"
       `,
         [
           nextEntry.id,
@@ -197,6 +200,7 @@ export function createMetadataStore({
           nextEntry.outputPath || null,
           nextEntry.storedAt || new Date().toISOString(),
           nextEntry.bytes || null,
+          nextEntry.isArchived ?? true,
         ],
       );
 

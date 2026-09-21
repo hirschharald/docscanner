@@ -3,12 +3,11 @@ import type { Document } from "@/types";
 import {
   deleteDocumentInBackend,
   fetchMetadataFromBackend,
-  updateDocumentInBackend,
   uploadDocumentsToBackend,
 } from "@/utils/api";
 import { loadDocuments, saveDocuments, generateId } from "@/utils/storage";
 
-export function useDocuments() {
+export const useDocuments = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [archivedDocuments, setArchivedDocuments] = useState<Document[]>([]);
 
@@ -22,25 +21,21 @@ export function useDocuments() {
       const metadataById = new Map(
         backendMetadata.map((entry) => [entry.id, entry]),
       );
-
       /////////////////////////   Merge local documents with backend metadata
-      const mergedDocuments = localDocuments.map((document) => {
+      const mergedDocuments = backendMetadata.map((document) => {
         const metadata = metadataById.get(document.id);
-
-        if (!metadata) {
-          return document;
-        }
-
         return {
           ...document,
-          tags: Array.from(
-            new Set([...(document.tags ?? []), ...(metadata.tags ?? [])]),
-          ),
-          name: document.name || metadata.name || "Dokument",
-          createdAt: document.createdAt || metadata.createdAt || Date.now(),
-          metadata: metadata.metadata ?? {},
+          tags: metadata?.tags || [],
+          name: document.name  || "Dokument",
+          createdAt: document.createdAt || Date.now(),
+          outputPath: metadata?.outputPath || document.dataUrl|| "",
+          type: document.type || "image",
+          isArchived: document.isArchived ?? false,
+          metadata: document.metadata ?? {},
         } as Document;
       });
+      console.log("Merged documents:", mergedDocuments);
       setDocuments(mergedDocuments);
       //////////////////////////////////////////////////////////////////
       const archived = backendMetadata.map((entry) => ({
@@ -49,6 +44,7 @@ export function useDocuments() {
         dataUrl: entry.fileName || "",
         type: entry.type || "image",
         createdAt: entry.createdAt || Date.now(),
+        outputPath: entry.outputPath || "",
         tags: entry.tags || [],
         metadata: entry.metadata || {},
         isArchived: entry.isArchived ?? false,
@@ -96,28 +92,20 @@ export function useDocuments() {
     [refreshAll],
   );
 
-  const addDocsToArchive = useCallback(
-    (
-      name: string,
-      dataUrl: string,
-      type: Document["type"],
-      tags: string[] = [],
-    ) => {
-      void (async () => {
-        try {
-          const docs = await loadDocuments();
-          await uploadDocumentsToBackend(docs);
-          setDocuments([]);
-          await saveDocuments([]);
-        } catch {
-          // Intentionally swallow backend errors to keep the UI responsive.
-        } finally {
-          await refreshAll();
-        }
-      })();
-    },
-    [refreshAll],
-  );
+  const addDocsToArchive = useCallback(() => {
+    void (async () => {
+      try {
+        const docs = await loadDocuments();
+        await uploadDocumentsToBackend(docs);
+        setDocuments([]);
+        await saveDocuments([]);
+      } catch {
+        console.error("Failed to upload documents to backend");
+      } finally {
+        await refreshAll();
+      }
+    })();
+  }, [refreshAll]);
 
   const removeDocument = useCallback(
     (id: string) => {
@@ -135,7 +123,7 @@ export function useDocuments() {
     },
     [refreshAll],
   );
-
+  // update document in local storage and backend
   const updateDocument = useCallback(
     (id: string, patch: Partial<Pick<Document, "name" | "tags">>) => {
       setDocuments((prev) => {
@@ -144,11 +132,11 @@ export function useDocuments() {
         return updated;
       });
 
-      void updateDocumentInBackend(id, patch)
-        .catch(() => undefined)
-        .finally(() => {
-          void refreshAll();
-        });
+      // void updateDocumentInBackend(id, patch)
+      //   .catch(() => undefined)
+      //   .finally(() => {
+      //     void refreshAll();
+      //   });
     },
     [refreshAll],
   );

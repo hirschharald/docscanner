@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import type { Document } from "@/types";
 import { formatDate } from "@/utils/storage";
 
-const API_DOC_URL = `${import.meta.env.VITE_API_URL ?? "/api"}/documents`;
+const API_DOC_URL = `${import.meta.env.VITE_API_URL ?? "/api"}`;
+// const DOCS_BASE_PATH = `${import.meta.env.VITE_DOCS_PATH ?? "/docs"}`;
 
 const yearOptions = Array.from(
   { length: 11 },
@@ -14,11 +15,12 @@ interface DocumentCardProps {
   document: Document;
   onDelete: (id: string) => void;
   onRename: (id: string, name: string, tags: string[]) => void;
-  onView: (document: Document) => void;
+  onView: () => void;
 }
 
 export const DocumentCard = React.memo<DocumentCardProps>(
   ({ document, onDelete, onRename, onView }) => {
+    // Create a mapping of tags to their values for easy access
     const tagObject = document.tags.reduce<Record<string, string>>(
       (acc, tag) => {
         const separatorIndex = tag.indexOf(":");
@@ -44,14 +46,44 @@ export const DocumentCard = React.memo<DocumentCardProps>(
     const [selectedCategory, setSelectedCategory] = useState(
       tagObject.Kategorie ?? "",
     );
-
+    // get doument from backend if it is archived
     useEffect(() => {
       if (document.isArchived) {
-        setImgPath(API_DOC_URL + "/" + document.id);
-      } else {
-        setImgPath(document.dataUrl ?? "");
+        const fetchDocument = async () => {
+          try {
+            const response = await fetch(
+              `${API_DOC_URL}/metadata/${document.id}`,
+            );
+            if (!response.ok) {
+              throw new Error("Failed to fetch document");
+            }
+            // const blob = await response.blob();
+            // const url = URL.createObjectURL(blob);
+            await response
+              .json()
+              .then((res) => {
+                // console.log(
+                //   "metadata",
+                //   res.metadata.fileName,
+                //   res.metadata.year,
+                // );
+                setImgPath(
+                  res.isArchived
+                    ? `${API_DOC_URL}/documents/${res.metadata.id}`
+                    : res.metadata.dataUrl,
+                );
+              })
+              .catch((e) => console.log("Error fetching metadata:", e));
+            // console.log(
+            //   `Fetched document from backend: ${document.id}, URL: ${response.url}`,
+            // );
+          } catch (error) {
+            console.error("Error fetching document:", error);
+          }
+        };
+        void fetchDocument();
       }
-    }, [document]);
+    }, [document.id, document.isArchived]);
 
     const handleRename = () => {
       const normalizedName = editName.trim();
@@ -84,23 +116,26 @@ export const DocumentCard = React.memo<DocumentCardProps>(
     const isPdf =
       document.dataUrl?.startsWith("data:application/pdf") ||
       document.name.toLowerCase().endsWith(".pdf");
+
     return (
       <div className="card doc-card shadow-sm h-100">
         {isPdf ? (
           <iframe
-            // src={API_DOC_URL + "/" + document.id}
-            src={imgPath}
             title={document.name}
+            src={API_DOC_URL + "/documents/" + document.id}
             className="doc-preview-img"
-            onClick={() => onView(document)}
+            onClick={() => onView()}
             style={{ border: "none", background: "#fff" }}
           />
         ) : (
           <img
-            src={imgPath}
-            alt={document.name}
+            alt={imgPath ? imgPath : document.name}
+            // src={API_DOC_URL + "/" + document.id}
+            src={document.isArchived && document.outputPath ? API_DOC_URL + "/documents/" + document.id : document.dataUrl}
+            title={document.name}
             className="doc-preview-img"
-            onClick={() => onView(document)}
+            onClick={() => onView()}
+            style={{ border: "none", background: "#fff" }}
           />
         )}
         <div className="card-body d-flex flex-column gap-1 p-2">
@@ -177,7 +212,7 @@ export const DocumentCard = React.memo<DocumentCardProps>(
         <div className="d-flex gap-1 mt-auto">
           <button
             className="btn btn-outline-primary btn-sm flex-fill"
-            onClick={() => onView(document)}
+            onClick={() => onView()}  
           >
             👁
           </button>

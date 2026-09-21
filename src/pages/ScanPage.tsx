@@ -1,10 +1,10 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import type { Document } from "@/types";
 import { CropModal } from "@/components/CropModal";
-import  { DocumentModal } from "@/components/DocumentModal";
+import { DocumentModal } from "@/components/DocumentModal";
 import { DocumentCard } from "@/components/DocumentCard";
 import { MetadataCard } from "@/components/MetaDataModal";
-
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface ScanPageProps {
   localDocuments?: Document[];
@@ -15,11 +15,12 @@ interface ScanPageProps {
     tags?: string[],
   ) => void;
   onDelete: (id: string) => void;
-  onView: (document: Document) => void;
+  onUpdate: (updatedDocument: Document) => void;
+  onArchive: () => void;
 }
 
 export const ScanPage = React.memo<ScanPageProps>(
-  ({ localDocuments, onAdd, onDelete , onView}) => {
+  ({ localDocuments, onAdd, onDelete, onUpdate, onArchive }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const nativeCameraInputRef = useRef<HTMLInputElement>(null);
@@ -30,17 +31,19 @@ export const ScanPage = React.memo<ScanPageProps>(
     const [captured, setCaptured] = useState<string | null>(null);
     const [cropping, setCropping] = useState(false);
     const [dragging, setDragging] = useState(false);
-    const [closeModal,setCloseModal ]=useState(false)
+    const [closeModal, setCloseModal] = useState(true);
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [documentModalOpen, setDocumentModalOpen] = useState(false);
 
     const [docName, setDocName] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
-
     const handleOpenMetadataModal = () => {
+      setDocumentModalOpen(true);
       setCloseModal(false);
-    }
+    };
 
     const startCamera = useCallback(async () => {
       setError(null);
@@ -227,131 +230,130 @@ export const ScanPage = React.memo<ScanPageProps>(
     return (
       <div
         className="modal d-block"
-        tabIndex={-1}
+        // tabIndex={-1}
         style={{ background: "rgba(0,0,0,0.7)" }}
-        
       >
-      <div className="container py-4" style={{ maxWidth: 1040 }}>
-        <h2 className="mb-4">📷 Dokument scannen</h2>
+        <div className="container py-4" style={{ maxWidth: 1040 }}>
+          <h2 className="mb-4">📷 Dokument scannen</h2>
 
-        {error && <div className="alert alert-danger">{error}</div>}
-        {saved && (
-          <div className="alert alert-success">✅ Dokument gespeichert!</div>
-        )}
+          {error && <div className="alert alert-danger">{error}</div>}
+          {saved && (
+            <div className="alert alert-success">✅ Dokument gespeichert!</div>
+          )}
 
-        <div
-          className="position-relative mb-3 bg-black rounded overflow-hidden"
-          style={{ minHeight: 240 }}
-        >
-          <video
-            ref={videoRef}
-            className="w-100 d-block"
-            autoPlay
-            playsInline
-            muted
-            style={{
-              display: streaming ? "block" : "none",
-              maxHeight: 480,
-              objectFit: "contain",
-            }}
-          />
-          {streaming && <div className="scan-overlay" />}
-          {captured && !cropping && (
-            <img
-              src={captured}
-              alt="Vorschau"
+          <div
+            className="position-relative mb-3 bg-black rounded overflow-hidden"
+            style={{ minHeight: 240 }}
+          >
+            <video
+              ref={videoRef}
               className="w-100 d-block"
-              style={{ maxHeight: 480, objectFit: "contain" }}
-            />
-          )}
-          {!streaming && !captured && (
-            <div
-              className="d-flex align-items-center justify-content-center"
-              style={{ minHeight: 240 }}
-            >
-              <span className="text-muted">📷 Kamera noch nicht aktiv</span>
-            </div>
-          )}
-        </div>
-
-        <canvas ref={canvasRef} className="d-none" />
-
-        {!streaming && !captured && (
-          <div className="d-flex flex-column gap-2 mb-3">
-            <button className="btn btn-primary w-100" onClick={startCamera}>
-              📷 Kamera starten
-            </button>
-            <button
-              className="btn btn-outline-secondary w-100"
-              onClick={() => nativeCameraInputRef.current?.click()}
-            >
-              📸 Native Android-Kamera öffnen
-            </button>
-            <input
-              ref={nativeCameraInputRef}
-              type="file"
-              accept="image/*||applivation/pdf"
-              capture="environment"
-              className="d-none"
-              onChange={handleNativeCameraCapture}
-            />
-            <button
-              className="btn btn-primary w-100"
-              onClick={() => {
-                setFileSelect(true);
-                // nativeInputRef.current?.click();
+              autoPlay
+              playsInline
+              muted
+              style={{
+                display: streaming ? "block" : "none",
+                maxHeight: 480,
+                objectFit: "contain",
               }}
-            >
-              📷 Dokument hochladen
-            </button>
-            {fileSelect && (
+            />
+            {streaming && <div className="scan-overlay" />}
+            {captured && !cropping && (
+              <img
+                src={captured}
+                alt="Vorschau"
+                className="w-100 d-block"
+                style={{ maxHeight: 480, objectFit: "contain" }}
+              />
+            )}
+            {!streaming && !captured && (
               <div
-                className={`rounded p-5 text-center mb-4 ${dragging ? "bg-primary bg-opacity-10 border border-primary" : "border border-secondary"}`}
-                style={{ borderStyle: "dashed", cursor: "pointer" }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragging(true);
-                }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => {
-                  nativeInputRef.current?.click();
-                }}
+                className="d-flex align-items-center justify-content-center"
+                style={{ minHeight: 240 }}
               >
-                <div className="display-4 mb-2">📂</div>
-                <p className="mb-1 fw-semibold">
-                  Bilder oder PDFs hierher ziehen oder klicken
-                </p>
-                <small className="text-muted">
-                  JPG, PNG, WebP, GIF oder PDF – mehrere Dateien möglich
-                </small>
-                <input
-                  ref={nativeInputRef}
-                  type="file"
-                  accept="image/*,.pdf"
-                  multiple
-                  className="d-none"
-                  onChange={(e) => processFiles(e.target.files)}
-                />
+                <span className="text-muted">📷 Kamera noch nicht aktiv</span>
               </div>
             )}
           </div>
-        )}
 
-        {streaming && (
-          <div className="d-flex gap-2 mb-3">
-            <button className="btn btn-success flex-fill" onClick={capture}>
-              📸 Aufnehmen
-            </button>
-            <button className="btn btn-secondary" onClick={stopCamera}>
-              ✕ Abbrechen
-            </button>
-          </div>
-        )}
+          <canvas ref={canvasRef} className="d-none" />
 
-        {captured && !cropping && (
-          <div className="card p-3">
-            {/* <div className="mb-3">
+          {!streaming && !captured && (
+            <div className="d-flex flex-column gap-2 mb-3">
+              <button className="btn btn-primary w-100" onClick={startCamera}>
+                📷 Kamera starten
+              </button>
+              <button
+                className="btn btn-outline-secondary w-100"
+                onClick={() => nativeCameraInputRef.current?.click()}
+              >
+                📸 Native Android-Kamera öffnen
+              </button>
+              <input
+                ref={nativeCameraInputRef}
+                type="file"
+                accept="image/*||applivation/pdf"
+                capture="environment"
+                className="d-none"
+                onChange={handleNativeCameraCapture}
+              />
+              <button
+                className="btn btn-primary w-100"
+                onClick={() => {
+                  setFileSelect(true);
+                  // nativeInputRef.current?.click();
+                }}
+              >
+                📷 Dokument hochladen
+              </button>
+              {fileSelect && (
+                <div
+                  className={`rounded p-5 text-center mb-4 ${dragging ? "bg-primary bg-opacity-10 border border-primary" : "border border-secondary"}`}
+                  style={{ borderStyle: "dashed", cursor: "pointer" }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragging(true);
+                  }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={handleDrop}
+                  onClick={() => {
+                    nativeInputRef.current?.click();
+                  }}
+                >
+                  <div className="display-4 mb-2">📂</div>
+                  <p className="mb-1 fw-semibold">
+                    Bilder oder PDFs hierher ziehen oder klicken
+                  </p>
+                  <small className="text-muted">
+                    JPG, PNG, WebP, GIF oder PDF – mehrere Dateien möglich
+                  </small>
+                  <input
+                    ref={nativeInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    multiple
+                    className="d-none"
+                    onChange={(e) => processFiles(e.target.files)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {streaming && (
+            <div className="d-flex gap-2 mb-3">
+              <button className="btn btn-success flex-fill" onClick={capture}>
+                📸 Aufnehmen
+              </button>
+              <button className="btn btn-secondary" onClick={stopCamera}>
+                ✕ Abbrechen
+              </button>
+            </div>
+          )}
+
+          {captured && !cropping && (
+            <div className="card p-3">
+              {/* <div className="mb-3">
               <label className="form-label fw-semibold">Aussteller</label>
               <input
                 type="text"
@@ -392,70 +394,105 @@ export const ScanPage = React.memo<ScanPageProps>(
               </select>
             </div> */}
 
-            <div className="d-flex gap-2">
-              <button
-                className="btn btn-success flex-fill"
-                onClick={handleSave}
-              >
-                💾 Übernehmen
-              </button>
-              <button
-                className="btn btn-outline-primary"
-                onClick={() => setCropping(true)}
-                title="Erneut zuschneiden"
-              >
-                ✂️ Zuschneiden
-              </button>
-              <button
-                className="btn btn-outline-secondary"
-                onClick={handleRetake}
-              >
-                🔄 Neu aufnehmen
-              </button>
-            </div>
-          </div>
-        )}
-
-        {cropping && (
-          <CropModal
-            imageSrc={captured}
-            onConfirm={handleCropConfirm}
-            onCancel={handleCropCancel}
-          />
-        )}
-        {localDocuments?.length !== 0 ? (
-          <div className="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
-            {localDocuments?.map((doc) => (
-              <div key={doc.id} className="col">
-                <DocumentCard
-                  document={doc}
-                  onDelete={(id) => {
-                    onDelete(id);
-                    setSelectedDoc(doc);
-                  }}
-                  onRename={() => {
-                    // onRename(id);
-                    setSelectedDoc(doc);
-                  }}
-                  onView={() => onView(doc)}
-                />
+              <div className="d-flex gap-2">
+                <button
+                  className="btn btn-success flex-fill"
+                  onClick={handleSave}
+                >
+                  💾 Übernehmen
+                </button>
+                <button
+                  className="btn btn-outline-primary"
+                  onClick={() => setCropping(true)}
+                  title="Erneut zuschneiden"
+                >
+                  ✂️ Zuschneiden
+                </button>
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={handleRetake}
+                >
+                  🔄 Neu aufnehmen
+                </button>
               </div>
-            ))}
+            </div>
+          )}
+
+          {cropping && (
+            <CropModal
+              imageSrc={captured}
+              onConfirm={handleCropConfirm}
+              onCancel={handleCropCancel}
+            />
+          )}
+          {localDocuments?.length !== 0 ? (
+            <div className="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
+              {localDocuments?.map((doc) => (
+                <div key={doc.id} className="col">
+                  <DocumentCard
+                    document={doc}
+                    onDelete={() => {
+                      // onDelete(id);
+                      setSelectedDoc(doc);
+                      setConfirmModalOpen(true);
+                    }}
+                    onRename={() => {
+                      // onRename(id);
+                      setSelectedDoc(doc);
+                    }}
+                    onView={() => handleOpenMetadataModal()}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <div className="d-flex gap-3 mt-3">
+            <button
+              className="btn btn-success"
+              onClick={handleOpenMetadataModal}
+            >
+              💾 Speichern und hochladen
+            </button>
+            <button
+              className="btn btn-outline-secondary"
+              // call scan page onClose prop to close the modal
+              onClick={handleRetake}
+            >
+              🔄 Abbrechen
+            </button>
           </div>
-        ) : null}
-        <div className="d-flex gap-3 mt-3">
-          <button className="btn btn-success" onClick={handleOpenMetadataModal}>
-            💾 Speichern und hochladen
-          </button>
-          <button className="btn btn-outline-secondary" onClick={handleRetake}>
-            🔄 Abbrechen
-          </button>
+          {!closeModal && localDocuments?.length !== 0 ? (
+            <MetadataCard
+              documents={localDocuments ?? []}
+              onClose={() => setCloseModal(true)}
+              onUpdate={(updatedDocument) => {
+                onUpdate(updatedDocument);
+                setCloseModal(true);
+              }}
+              onArchive={onArchive}
+            />
+          ) : null}
+
+          {confirmModalOpen ? (
+            <ConfirmModal
+              open={confirmModalOpen}
+              title="Dokument löschen?"
+              message={`Möchten Sie das Dokument "${selectedDoc?.name}" wirklich löschen?`}
+              onResult={(result) => {
+                if (result && selectedDoc) {
+                  onDelete(selectedDoc.id);
+                }
+                setConfirmModalOpen(false);
+              }}
+            />
+          ) : null}
+          {documentModalOpen ? (
+            <DocumentModal
+              document={selectedDoc}
+              onClose={() => setDocumentModalOpen(false)}
+            />
+          ) : null}
         </div>
-             {!closeModal?(
-               <MetadataCard documents={[]} onClose={() => setCloseModal(true)} />
-             ):null}
-        
-      </div>
       </div>
     );
   },

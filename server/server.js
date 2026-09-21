@@ -7,10 +7,9 @@ import { createMetadataStore } from "./postgressStore.js";
 
 const app = express();
 const port = process.env.PORT ?? 3001;
-const documentsBaseDir = path.resolve(
-  process.cwd(),
-  process.env.DOCS_BASE_PATH || "docs",
-);
+const documentsBaseDir = 
+  process.env.VITE_DOCS_PATH || "docs"
+
 const connectionString =
   process.env.DATABASE_URL ||
   process.env.PG_CONNECTION_STRING ||
@@ -141,6 +140,7 @@ async function persistDocumentMetadata(document, fileInfo) {
     outputPath: fileInfo?.outputPath,
     storedAt: new Date().toISOString(),
     bytes: fileInfo?.bytes,
+    isArchived: document?.isArchived ?? true,
   };
 
   await saveMetadataEntry(record);
@@ -156,7 +156,7 @@ async function storeDocument(document, index) {
   const nameBase =
     sanitizeName(path.parse(document?.name || "").name) ||
     `document_${Date.now()}_${index + 1}`;
-  const fileName = `${nameBase}.${extension}`;
+  const fileName = document?.fileName || `${nameBase}.${extension}`;
   const outputPath = path.join(outputDir, fileName);
   const data = dataUrlToBuffer(document?.dataUrl);
 
@@ -190,7 +190,7 @@ function resolveDocumentFilePath(entry) {
   const baseDir = path.resolve(documentsBaseDir);
   const candidates = [];
 
-  if (entry?.outputPath) {
+  if (entry?.outputPath || entry.outputPath !== "") {
     candidates.push(path.resolve(entry.outputPath));
   } else if (entry?.fileName) {
     const year = entry?.year || extractYear(entry);
@@ -345,14 +345,28 @@ app.get("/api/metadata", async (_req, res) => {
   res.json({ ok: true, count: metadata.length, metadata });
 });
 
-app.get("/api/metadata/:id", (req, res) => {
-  const metadata = loadMetadataDb();
+app.get("/api/metadata/:id", async (req, res) => {
+  const metadata = await loadMetadataDb();
   const entry = metadata.find((item) => item.id === req.params.id);
 
-  if (!entry) {
+   const filePath = resolveDocumentFilePath(entry);
+
+  if (!entry || !filePath) {
     return res
       .status(404)
       .json({ ok: false, message: "Metadata entry not found" });
+  }
+  else {
+    try {
+      await fs.access(filePath);
+      // create a URL for the file path to send back to the client
+      const fileUrl = `/api/documents/${entry.id}`;
+      entry.fileUrl = fileUrl;
+    } catch {
+      return res
+        .status(404)
+        .json({ ok: false, message: "Document file not found" });
+    }
   }
 
   res.json({ ok: true, metadata: entry });
@@ -379,6 +393,7 @@ app.get("/api/documents/:id", async (req, res) => {
 
   try {
     await fs.access(filePath);
+    //
     return res.sendFile(filePath);
   } catch {
     return res

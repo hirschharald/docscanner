@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import type { Document } from "@/types";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -38,8 +39,9 @@ function App() {
     archivedDocuments,
     addDocument,
     removeDocument,
-    updateDocument,
     cropDocument,
+    updateDocument,
+    toArchive,
   } = useDocuments();
 
   // in App():
@@ -73,12 +75,16 @@ function App() {
     };
   }, []);
 
-  const handleUpdate = useCallback(
-    () => {
-      // handleUpdate expects a Document object, adjust as needed
-    },
-    [],
-  );
+  const handleUpdate = useCallback((updatedDocument: Document ) => {
+    updateDocument(updatedDocument.id, {
+      name: updatedDocument.name,
+      tags: updatedDocument.tags,
+    });
+  }, [updateDocument]);
+
+  const handleArchive = useCallback(() => {
+    toArchive();
+  }, [toArchive]);
 
   return (
     <BrowserRouter>
@@ -99,7 +105,9 @@ function App() {
                   <HomePage
                     archivedDocuments={archivedDocuments}
                     onDelete={removeDocument}
-                    onRename={handleUpdate}
+                    onUpdate={(id, name, tags) =>
+                      updateDocument(id, { name, tags })
+                    }
                     onCrop={cropDocument}
                   />
                 </ErrorBoundary>
@@ -113,7 +121,8 @@ function App() {
                     localDocuments={localDocuments}
                     onAdd={addDocument}
                     onDelete={removeDocument}
-                    onView={handleUpdate}
+                    onUpdate={handleUpdate}
+                    onArchive={handleArchive}
                   />
                 </ErrorBoundary>
               }

@@ -155,7 +155,7 @@ export async function updateDocumentInBackend(
 
   return response.json().catch(() => ({ ok: true }));
 }
-
+// delete document in backend
 export async function deleteDocumentInBackend(
   id: string,
   baseUrl?: string,

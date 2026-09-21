@@ -7,16 +7,21 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 interface HomePageProps {
   archivedDocuments: Document[];
   onDelete: (id: string) => void;
-  onRename: (id: string, name: string, tags: string[]) => void;
+  onUpdate: (id: string, name: string, tags: string[]) => void;
   onCrop: (id: string, dataUrl: string) => void;
 }
 // load documents from backend metadata
 export const HomePage = React.memo<HomePageProps>(
-  ({ archivedDocuments, onDelete, onRename, onCrop }) => {
+  ({ archivedDocuments, onDelete, onUpdate, onCrop }) => {
     const [query, setQuery] = useState("");
     const [selectedYear, setSelectedYear] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("");
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+    const [documentModalOpen, setDocumentModalOpen] = useState(false);
+
+    const handleOpenMetadataModal = () => {
+      setDocumentModalOpen(true);
+    };
 
     const yearOptions = useMemo(
       () =>
@@ -141,18 +146,29 @@ export const HomePage = React.memo<HomePageProps>(
                 <DocumentCard
                   // noMetadata={false}
                   document={doc}
+                  onRename={(id, name) => onUpdate(id, name, doc.tags)}
                   // onDelete={onDelete}
                   onDelete={(id) => {
                     onDelete(id);
                     setSelectedDoc(doc);
                   }}
-                  onRename={onRename}
-                  onView={setSelectedDoc}
+                  onView={handleOpenMetadataModal}
                 />
               </div>
             ))}
           </div>
         )}
+
+         {documentModalOpen && selectedDoc ? (
+            <DocumentModal
+              document={selectedDoc}
+              onClose={() => setDocumentModalOpen(false)}
+              onCropSave={(id, dataUrl) => {
+            onCrop(id, dataUrl);
+            setSelectedDoc((prev) => (prev ? { ...prev, dataUrl } : null));
+              }}
+            />
+          ) : null}
 
         <DocumentModal
           document={selectedDoc}
