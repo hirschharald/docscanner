@@ -8,12 +8,14 @@ import {
 import { loadDocuments, saveDocuments, generateId } from "@/utils/storage";
 
 export const useDocuments = () => {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [localDocuments, setLocalDocuments] = useState<Document[]>([]);
   const [archivedDocuments, setArchivedDocuments] = useState<Document[]>([]);
 
   const refreshAll = useCallback(async () => {
     // Load documents from local storage and backend metadata, then merge them
     const localDocuments = await loadDocuments();
+    setLocalDocuments(localDocuments)
+    
 
     try {
       const backendMetadata = await fetchMetadataFromBackend();
@@ -22,21 +24,21 @@ export const useDocuments = () => {
         backendMetadata.map((entry) => [entry.id, entry]),
       );
       /////////////////////////   Merge local documents with backend metadata
-      const mergedDocuments = backendMetadata.map((document) => {
-        const metadata = metadataById.get(document.id);
-        return {
-          ...document,
-          tags: metadata?.tags || [],
-          name: document.name  || "Dokument",
-          createdAt: document.createdAt || Date.now(),
-          outputPath: metadata?.outputPath || document.dataUrl|| "",
-          type: document.type || "image",
-          isArchived: document.isArchived ?? false,
-          metadata: document.metadata ?? {},
-        } as Document;
-      });
-      console.log("Merged documents:", mergedDocuments);
-      setDocuments(mergedDocuments);
+      // const mergedDocuments = backendMetadata.map((document) => {
+      //   const metadata = metadataById.get(document.id);
+      //   return {
+      //     ...document,
+      //     tags: metadata?.tags || [],
+      //     name: document.name  || "Dokument",
+      //     createdAt: document.createdAt || Date.now(),
+      //     outputPath: metadata?.outputPath || document.dataUrl|| "",
+      //     type: document.type || "image",
+      //     isArchived: document.isArchived ?? false,
+      //     metadata: document.metadata ?? {},
+      //   } as Document;
+      // });
+      // console.log("Merged documents:", mergedDocuments);
+      // setDocuments(mergedDocuments);
       //////////////////////////////////////////////////////////////////
       const archived = backendMetadata.map((entry) => ({
         id: entry.id,
@@ -54,7 +56,7 @@ export const useDocuments = () => {
       setArchivedDocuments(archived);
       // await saveDocuments(mergedDocuments);
     } catch {
-      setDocuments(localDocuments);
+      setLocalDocuments([]);
       setArchivedDocuments([]);
     }
   }, []);
@@ -80,7 +82,7 @@ export const useDocuments = () => {
         tags,
       };
 
-      setDocuments((prev) => {
+      setLocalDocuments((prev) => {
         const updated = [doc, ...prev];
         // save documents to local storage
         void saveDocuments(updated);
@@ -97,7 +99,7 @@ export const useDocuments = () => {
       try {
         const docs = await loadDocuments();
         await uploadDocumentsToBackend(docs);
-        setDocuments([]);
+        setLocalDocuments([]);
         await saveDocuments([]);
       } catch {
         console.error("Failed to upload documents to backend");
@@ -109,7 +111,7 @@ export const useDocuments = () => {
 
   const removeDocument = useCallback(
     (id: string) => {
-      setDocuments((prev) => {
+      setLocalDocuments((prev) => {
         const updated = prev.filter((d) => d.id !== id);
         void saveDocuments(updated);
         return updated;
@@ -126,7 +128,7 @@ export const useDocuments = () => {
   // update document in local storage and backend
   const updateDocument = useCallback(
     (id: string, patch: Partial<Pick<Document, "name" | "tags">>) => {
-      setDocuments((prev) => {
+      setLocalDocuments((prev) => {
         const updated = prev.map((d) => (d.id === id ? { ...d, ...patch } : d));
         void saveDocuments(updated);
         return updated;
@@ -142,7 +144,7 @@ export const useDocuments = () => {
   );
 
   const cropDocument = useCallback((id: string, dataUrl: string) => {
-    setDocuments((prev) => {
+    setLocalDocuments((prev) => {
       const updated = prev.map((d) => (d.id === id ? { ...d, dataUrl } : d));
       void saveDocuments(updated);
       return updated;
@@ -150,7 +152,7 @@ export const useDocuments = () => {
   }, []);
 
   return {
-    localDocuments: documents,
+    localDocuments: localDocuments,
     archivedDocuments,
     addDocument,
     removeDocument,

@@ -64,6 +64,17 @@ export async function writeAllToStore<T>(storeName: string, items: T[]): Promise
   db.close()
 }
 
+export async function removeAllFromStore<T>(storeName: string, items: T[]): Promise<void> {
+  const db = await openDb()
+  const transaction = db.transaction(storeName, 'readwrite')
+  const store = transaction.objectStore(storeName)
+  
+  items.forEach((item) => store.delete((item as any).id))
+
+  await transactionPromise(transaction)
+  db.close()
+}
+
 export async function readSingleFromStore<T>(storeName: string, key: string): Promise<T | null> {
   try {
     const db = await openDb()
@@ -81,6 +92,15 @@ export async function readSingleFromStore<T>(storeName: string, key: string): Pr
   } catch {
     return null
   }
+}
+export async function removeSingleFromStore(storeName: string, key: string): Promise<void> {
+  const db = await openDb()
+  const transaction = db.transaction(storeName, 'readwrite')
+  const store = transaction.objectStore(storeName)
+  store.delete(key)
+
+  await transactionPromise(transaction)
+  db.close()
 }
 
 export async function writeSingleToStore<T>(storeName: string, key: string, value: T): Promise<void> {

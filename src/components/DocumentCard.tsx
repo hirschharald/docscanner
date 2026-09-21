@@ -122,7 +122,7 @@ export const DocumentCard = React.memo<DocumentCardProps>(
         {isPdf ? (
           <iframe
             title={document.name}
-            src={API_DOC_URL + "/documents/" + document.id}
+            src={document.isArchived  ? `${API_DOC_URL}/documents/${document.id}` : document.dataUrl}
             className="doc-preview-img"
             onClick={() => onView()}
             style={{ border: "none", background: "#fff" }}
@@ -131,7 +131,7 @@ export const DocumentCard = React.memo<DocumentCardProps>(
           <img
             alt={imgPath ? imgPath : document.name}
             // src={API_DOC_URL + "/" + document.id}
-            src={document.isArchived && document.outputPath ? API_DOC_URL + "/documents/" + document.id : document.dataUrl}
+            src={document.isArchived  ? `${API_DOC_URL}/documents/${document.id}` : document.dataUrl}
             title={document.name}
             className="doc-preview-img"
             onClick={() => onView()}

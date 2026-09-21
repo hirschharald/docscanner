@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import type { Document } from "@/types";
-
+import { removeDocuments } from "@/utils/storage";
 
 const yearOptions = Array.from(
   { length: 11 },
@@ -31,7 +31,8 @@ export const MetadataCard = React.memo<MetaDataProps>(
           document.tags,
         );
       onUpdate(document)
-      });
+    });
+    removeDocuments(documents)
       
       // add all to archive    onArchive(documents);
       // if success remove all from documents list and localstore

@@ -230,7 +230,7 @@ export const ScanPage = React.memo<ScanPageProps>(
     return (
       <div
         className="modal d-block"
-        // tabIndex={-1}
+        tabIndex={-1}
         style={{ background: "rgba(0,0,0,0.7)" }}
       >
         <div className="container py-4" style={{ maxWidth: 1040 }}>
@@ -292,7 +292,7 @@ export const ScanPage = React.memo<ScanPageProps>(
               <input
                 ref={nativeCameraInputRef}
                 type="file"
-                accept="image/*||applivation/pdf"
+                accept="image/*||application/pdf"
                 capture="environment"
                 className="d-none"
                 onChange={handleNativeCameraCapture}

@@ -1,5 +1,5 @@
 import type { Document } from '@/types'
-import { readAllFromStore, writeAllToStore } from '@/utils/indexedDb'
+import { readAllFromStore, writeAllToStore, removeAllFromStore } from '@/utils/indexedDb'
 
 const STORAGE_STORE = 'documents'
 const LEGACY_STORAGE_KEY = 'docscanner_documents'
@@ -33,6 +33,13 @@ export async function loadDocuments(): Promise<Document[]> {
 export async function saveDocuments(docs: Document[]): Promise<void> {
   await writeAllToStore(STORAGE_STORE, docs)
   // write to backend
+
+}
+
+export async function removeDocuments(docs: Document[]): Promise<void> {
+  await removeAllFromStore(STORAGE_STORE,docs)
+  // remove from backend  
+
 
 }
 
