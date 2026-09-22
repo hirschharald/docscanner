@@ -149,7 +149,7 @@ export const HomePage = React.memo<HomePageProps>(
                   document={doc}
                   onRename={(id, name) => onUpdate(id, name, doc.tags)}
                   // onDelete={onDelete}
-                  onDelete={(id) => {
+                  onDelete={() => {
                     setConfirmModalOpen(true);
                     // onDelete(id);
                     setSelectedDoc(doc);

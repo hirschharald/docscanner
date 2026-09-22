@@ -1,6 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
+import "dotenv/config";
+
+// const port = process.env.PORT ?? 3001;
 
 const { Pool } = pg;
 
@@ -44,7 +47,7 @@ function buildPoolConfig(connectionString) {
 export function createMetadataStore({
   connectionString,
   documentsBaseDir,
-  tableName = "metadata_entries",
+  tableName = process.env.DOC_TABLENAME || "metadata_entries",
 }) {
   const pool = new Pool(buildPoolConfig(connectionString));
   const legacyFilePath = documentsBaseDir
