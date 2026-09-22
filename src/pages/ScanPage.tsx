@@ -45,6 +45,11 @@ export const ScanPage = React.memo<ScanPageProps>(
       setCloseModal(false);
     };
 
+    const handleCloseMetadataModal = () => {
+      setDocumentModalOpen(false);
+      setCloseModal(true);
+    };
+
     const startCamera = useCallback(async () => {
       setError(null);
       setSaved(false);
@@ -432,12 +437,10 @@ export const ScanPage = React.memo<ScanPageProps>(
                   <DocumentCard
                     document={doc}
                     onDelete={() => {
-                      // onDelete(id);
                       setSelectedDoc(doc);
                       setConfirmModalOpen(true);
                     }}
                     onRename={() => {
-                      // onRename(id);
                       setSelectedDoc(doc);
                     }}
                     onView={() => handleOpenMetadataModal()}
@@ -455,8 +458,9 @@ export const ScanPage = React.memo<ScanPageProps>(
             </button>
             <button
               className="btn btn-outline-secondary"
-              // call scan page onClose prop to close the modal
-              onClick={handleRetake}
+              // route to application homepage
+
+               onClick={() => window.location.href = "/"}
             >
               🔄 Abbrechen
             </button>

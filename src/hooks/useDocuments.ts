@@ -20,9 +20,9 @@ export const useDocuments = () => {
     try {
       const backendMetadata = await fetchMetadataFromBackend();
 
-      const metadataById = new Map(
-        backendMetadata.map((entry) => [entry.id, entry]),
-      );
+      // const metadataById = new Map(
+      //   backendMetadata.map((entry) => [entry.id, entry]),
+      // );
       /////////////////////////   Merge local documents with backend metadata
       // const mergedDocuments = backendMetadata.map((document) => {
       //   const metadata = metadataById.get(document.id);
@@ -133,12 +133,6 @@ export const useDocuments = () => {
         void saveDocuments(updated);
         return updated;
       });
-
-      // void updateDocumentInBackend(id, patch)
-      //   .catch(() => undefined)
-      //   .finally(() => {
-      //     void refreshAll();
-      //   });
     },
     [refreshAll],
   );

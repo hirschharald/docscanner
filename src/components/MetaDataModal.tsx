@@ -31,6 +31,7 @@ export const MetadataCard = React.memo<MetaDataProps>(
           document.tags,
         );
       onUpdate(document)
+      onArchive();
     });
     removeDocuments(documents)
       
