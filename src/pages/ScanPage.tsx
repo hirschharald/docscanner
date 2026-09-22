@@ -40,15 +40,21 @@ export const ScanPage = React.memo<ScanPageProps>(
     const [saved, setSaved] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
+    const handleView = (document: Document) => {
+     console.log("View document:", document);
+     setSelectedDoc(document);
+     setDocumentModalOpen(true);
+    };
+
     const handleOpenMetadataModal = () => {
       setDocumentModalOpen(true);
       setCloseModal(false);
     };
 
-    const handleCloseMetadataModal = () => {
-      setDocumentModalOpen(false);
-      setCloseModal(true);
-    };
+    // const handleCloseMetadataModal = () => {
+    //   setDocumentModalOpen(false);
+    //   setCloseModal(true);
+    // };
 
     const startCamera = useCallback(async () => {
       setError(null);
@@ -443,7 +449,7 @@ export const ScanPage = React.memo<ScanPageProps>(
                     onRename={() => {
                       setSelectedDoc(doc);
                     }}
-                    onView={() => handleOpenMetadataModal()}
+                    onView={() => handleView(doc)}
                   />
                 </div>
               ))}
@@ -474,6 +480,7 @@ export const ScanPage = React.memo<ScanPageProps>(
                 setCloseModal(true);
               }}
               onArchive={onArchive}
+              // onView={handleView}
             />
           ) : null}
 

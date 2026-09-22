@@ -18,6 +18,7 @@ export const HomePage = React.memo<HomePageProps>(
     const [selectedCategory, setSelectedCategory] = useState("");
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
     const [documentModalOpen, setDocumentModalOpen] = useState(false);
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
     const handleOpenMetadataModal = () => {
       setDocumentModalOpen(true);
@@ -149,47 +150,44 @@ export const HomePage = React.memo<HomePageProps>(
                   onRename={(id, name) => onUpdate(id, name, doc.tags)}
                   // onDelete={onDelete}
                   onDelete={(id) => {
-                    onDelete(id);
+                    setConfirmModalOpen(true);
+                    // onDelete(id);
                     setSelectedDoc(doc);
                   }}
-                  onView={handleOpenMetadataModal}
+                  onView={() => {
+                    setSelectedDoc(doc);
+                    handleOpenMetadataModal();
+                  }}
                 />
               </div>
             ))}
           </div>
         )}
+        {documentModalOpen ? (
+          <DocumentModal
+            document={selectedDoc}
+            onClose={() => setDocumentModalOpen(false)}
+            onCropSave={(id, dataUrl) => {
+              onCrop(id, dataUrl);
+              setSelectedDoc((prev) => (prev ? { ...prev, dataUrl } : null));
+            }}
+          />
+        ) : null}
 
-         {documentModalOpen && selectedDoc ? (
-            <DocumentModal
-              document={selectedDoc}
-              onClose={() => setDocumentModalOpen(false)}
-              onCropSave={(id, dataUrl) => {
-            onCrop(id, dataUrl);
-            setSelectedDoc((prev) => (prev ? { ...prev, dataUrl } : null));
-              }}
-            />
-          ) : null}
-
-        <DocumentModal
-          document={selectedDoc}
-          onClose={() => setSelectedDoc(null)}
-          onCropSave={(id, dataUrl) => {
-            onCrop(id, dataUrl);
-            setSelectedDoc((prev) => (prev ? { ...prev, dataUrl } : null));
-          }}
-        />
-
-        <ConfirmModal
-          open={!!selectedDoc}
-          title="Dokument löschen?"
-          message={`Möchten Sie das Dokument "${selectedDoc?.name}" wirklich löschen?`}
-          onResult={(result) => {
-            if (result && selectedDoc) {
-              onDelete(selectedDoc.id);
-            }
-            setSelectedDoc(null);
-          }}
-        />
+        {confirmModalOpen ? (
+          <ConfirmModal
+            open={!!selectedDoc}
+            title="Dokument löschen?"
+            message={`Möchten Sie das Dokument "${selectedDoc?.name}" wirklich löschen?`}
+            onResult={(result) => {
+              if (result && selectedDoc) {
+                onDelete(selectedDoc.id);
+                 setConfirmModalOpen(false);
+              }
+              setSelectedDoc(null);
+            }}
+          />
+        ) : null}
       </div>
     );
   },
